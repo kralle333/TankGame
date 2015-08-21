@@ -43,7 +43,15 @@ namespace ShooterGuys
 			}
 
 		}
-		private void SetBaseLevel()
+		
+        public Map(Tile[,] tiles)
+        {
+            this.tiles = tiles;
+            _width = tiles.GetLength(0);
+            _height = tiles.GetLength(1);
+        }
+        
+        private void SetBaseLevel()
 		{
 			for (int x = 0; x < _width; x++)
 			{

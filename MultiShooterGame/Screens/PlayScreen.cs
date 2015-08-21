@@ -7,6 +7,7 @@ using MonoGameLibrary.Drawing;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using MultiShooterGame.GameObjects;
 
 namespace ShooterGuys
 {
@@ -16,7 +17,7 @@ namespace ShooterGuys
 		private List<Tank> _playersRemaining = new List<Tank>();
 		private Map _currentMap;
 		private const int cMapWidth = 42;
-		private const int cMapHeight = 21;
+		private const int cMapHeight = 20;
 		private const int cTileSize = 32;
 
 		private ShapeRenderer shapeRenderer;
@@ -68,16 +69,17 @@ namespace ShooterGuys
 			Tile.InitializeTilePreferences();
 
 			Map.TileSize = cTileSize;
-			_currentMap = new Map(cMapWidth, cMapHeight);
+            MapGenerator.Initialize();
+			//_currentMap = new Map(cMapWidth, cMapHeight);
+            _currentMap = MapGenerator.GenerateMap(cMapWidth, cMapHeight);
 			_currentMap.LoadContent(_contentManager);
-			_currentMap.GenerateRandomMap();
 
 			SetStartingPositions(cMapWidth, cMapHeight);
 			SetViewPorts(numberOfPlayers);
 			camera.Move(new Vector2(-10, -Map.TileSize * 2));
 
 			_wonText = new SpriteText("BigFont", "Player won", new Vector2(300, 300));
-			_wonText.Depth = 1;
+			_wonText.Depth = 0.0f;
 			_wonText.LoadContent(_contentManager);
 			_wonText.Hide();
 
@@ -133,12 +135,12 @@ namespace ShooterGuys
 		}
 		private void SetStartingPositions(int mapWidth, int mapHeight)
 		{
-            float offsetX = Map.TileSize * 2.5f;
-            float offsetY = Map.TileSize * 2.5f;
+            float offsetX = Map.TileSize * 1.5f;
+            float offsetY = Map.TileSize * 1.5f;
             startingLocations.Add(new Vector2(offsetX, offsetY ));
-			startingLocations.Add(new Vector2((mapWidth * Map.TileSize) - Map.TileSize - offsetX, offsetY));
-			startingLocations.Add(new Vector2(offsetX, (mapHeight * Map.TileSize)  - offsetY));
-			startingLocations.Add(new Vector2((mapWidth * Map.TileSize) - Map.TileSize - offsetX, (mapHeight * Map.TileSize)  - offsetY));
+			startingLocations.Add(new Vector2((mapWidth * Map.TileSize) - offsetX, offsetY));
+			startingLocations.Add(new Vector2(offsetX, (mapHeight * Map.TileSize) - offsetY));
+			startingLocations.Add(new Vector2((mapWidth * Map.TileSize) -  offsetX, (mapHeight * Map.TileSize)  - offsetY));
 		}
 
 		private readonly List<Tank> _deadSoldiers = new List<Tank>();
@@ -168,7 +170,7 @@ namespace ShooterGuys
 					{
 						Vector2 directionVector = otherSoldier.position - _playersRemaining[i].position;
 						directionVector.Normalize();
-						_playersRemaining[i].ApplyForce(2, directionVector);
+						_playersRemaining[i].ApplyForce(3f, -directionVector);
 					}
 				}
 			}
@@ -196,7 +198,7 @@ namespace ShooterGuys
 					b.Update(gameTime);
 					int tileX = (int)Math.Round(b.Center.X / Map.TileSize);
 					int tileY = (int)Math.Round(b.Center.Y / Map.TileSize);
-                    if(tileX> _currentMap.Width || tileY>_currentMap.Height)
+                    if(tileX>=_currentMap.Width || tileY>=_currentMap.Height || tileX<0 || tileY<0)
                     {
                         b.Hide();
                         continue;
@@ -236,7 +238,6 @@ namespace ShooterGuys
 		public override void HandleInput(InputState inputState)
 		{
 			base.HandleInput(inputState);
-
 			for (int i = 0; i < numberOfPlayers; i++)
 			{
 				_players[i].HandleInput(inputState, screenManager.currentGameTime);
@@ -251,15 +252,9 @@ namespace ShooterGuys
 								ResetGame();
 							}
 							break;
-						case Tank.ControlScheme.MouseKeyboard:
-							if (inputState.IsKeyNewPressed(Keys.Enter))
-							{
-								ResetGame();
-							}
-							break;
 						default:
 							inputState.ActivePlayerIndex = _players[i].GamePadIndex;
-							if (inputState.IsButtonNewPressed(Buttons.Back))
+							if (inputState.IsButtonNewPressed(Buttons.Start))
 							{
 								ResetGame();
 							}
@@ -279,18 +274,18 @@ namespace ShooterGuys
 				}
 
 				_spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointWrap, null, null, null, _players[i].camera.GetTransformation(screenManager.GraphicsDevice));
-				if (_playersRemaining.Count <= 1)
-				{
-					_wonText.Draw(_spriteBatch, gameTime);
-				}
+                if (_playersRemaining.Count <= 1)
+                {
+                    _wonText.Draw(_spriteBatch, gameTime);
+                }
 				PooledObjects.bullets.ForEach(b => b.Draw(_spriteBatch, gameTime));
-				for (int j = 0; j < numberOfPlayers; j++)
-				{
-					_players[j].Draw(_spriteBatch, gameTime);
-				}
-				_currentMap.Draw(_spriteBatch, gameTime);
 
-
+				
+                _currentMap.Draw(_spriteBatch, gameTime);
+                for (int j = 0; j < numberOfPlayers; j++)
+                {
+                    _players[j].Draw(_spriteBatch, gameTime);
+                }
 				_spriteBatch.End();
 			}
 			if (usingSplitScreen)

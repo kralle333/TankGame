@@ -79,7 +79,7 @@ namespace ShooterGuys
             _team = team;
 			_screenBounds = screenBounds;
 			_usedControlScheme = controlScheme;
-            SetOrigin(Map.TileSize / 2, Map.TileSize / 2);
+            SetOrigin(16, 16);
             cannon = new Sprite("Sprites", position, 26, 16, false, SpriteHelper.GetDefaultDepth(SpriteHelper.SpriteDepth.Middle) + 0.1f);
             cannon.SetTextureRectangle(new Rectangle(96 + 32 * index, 64, 26, 16));
             cannon.SetOrigin(8f, 8f);
