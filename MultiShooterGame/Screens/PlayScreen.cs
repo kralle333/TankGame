@@ -29,7 +29,7 @@ namespace ShooterGuys
 		private Viewport[] usedViewPorts;
 		public static bool usingSplitScreen = false;
 
-		private List<Vector2> startingLocations = new List<Vector2>();
+        private List<Tuple<Vector2, float>> startingLocations = new List<Tuple<Vector2, float>>();
 		private Random random = new Random();
 		private Viewport guiViewPort;
 		private Dictionary<Tank,SpriteText> _healthText;
@@ -49,12 +49,14 @@ namespace ShooterGuys
 			_deadSoldiers.Clear();
 			_playersRemaining.Clear();
 			SetStartingPositions(cMapWidth, cMapHeight);
-			_currentMap.GenerateRandomMap();
+            _currentMap = MapGenerator.GenerateRoguelikeMap(cMapWidth, cMapHeight);
+            _currentMap.LoadContent(_contentManager);
 			for (int i = 0; i < numberOfPlayers; i++)
 			{
 				_players[i].Reset();
 				int randomPosition = random.Next(0, startingLocations.Count);
-				_players[i].position = startingLocations[randomPosition];
+				_players[i].position = startingLocations[randomPosition].Item1;
+                _players[i].Rotation = startingLocations[randomPosition].Item2;
 				startingLocations.RemoveAt(randomPosition);
 				_playersRemaining.Add(_players[i]);
 			}
@@ -70,8 +72,7 @@ namespace ShooterGuys
 
 			Map.TileSize = cTileSize;
             MapGenerator.Initialize();
-			//_currentMap = new Map(cMapWidth, cMapHeight);
-            _currentMap = MapGenerator.GenerateMap(cMapWidth, cMapHeight);
+            _currentMap = MapGenerator.GenerateRoguelikeMap(cMapWidth, cMapHeight);
 			_currentMap.LoadContent(_contentManager);
 
 			SetStartingPositions(cMapWidth, cMapHeight);
@@ -79,7 +80,7 @@ namespace ShooterGuys
 			camera.Move(new Vector2(-10, -Map.TileSize * 2));
 
 			_wonText = new SpriteText("BigFont", "Player won", new Vector2(300, 300));
-			_wonText.Depth = 0.0f;
+			_wonText.Depth = 1f;
 			_wonText.LoadContent(_contentManager);
 			_wonText.Hide();
 
@@ -87,9 +88,11 @@ namespace ShooterGuys
 			for (int i = 0; i < numberOfPlayers; i++)
 			{
 				int randomPosition = random.Next(0, startingLocations.Count);
-				_players[i] = new Tank(i,startingLocations[randomPosition], teamsSelected[i], usedControls[i], usedViewPorts[i].Bounds);
-				_players[i].LoadContent(_contentManager,_spriteBatch);
-				_healthText[_players[i]] = new SpriteText("HealthFont", "", new Vector2(100 + i * GameSettings.GetResolution().X / numberOfPlayers, -40));
+				_players[i] = new Tank(i,startingLocations[randomPosition].Item1, teamsSelected[i], usedControls[i], usedViewPorts[i].Bounds);
+                _players[i].Rotation = startingLocations[randomPosition].Item2;
+                _players[i].LoadContent(_contentManager,_spriteBatch);
+                _players[i].ResetHealth();
+				_healthText[_players[i]] = new SpriteText("HealthFont", "", new Vector2(50 + (i*300), -25));
                 _healthText[_players[i]].color = Tank.ConvertTeamToColor(teamsSelected[i]);
 				Add(_healthText[_players[i]]);
 				startingLocations.RemoveAt(randomPosition);
@@ -137,10 +140,10 @@ namespace ShooterGuys
 		{
             float offsetX = Map.TileSize * 1.5f;
             float offsetY = Map.TileSize * 1.5f;
-            startingLocations.Add(new Vector2(offsetX, offsetY ));
-			startingLocations.Add(new Vector2((mapWidth * Map.TileSize) - offsetX, offsetY));
-			startingLocations.Add(new Vector2(offsetX, (mapHeight * Map.TileSize) - offsetY));
-			startingLocations.Add(new Vector2((mapWidth * Map.TileSize) -  offsetX, (mapHeight * Map.TileSize)  - offsetY));
+            startingLocations.Add(new Tuple<Vector2,float>(new Vector2(offsetX, offsetY ),0));
+            startingLocations.Add(new Tuple<Vector2, float>(new Vector2((mapWidth * Map.TileSize) - offsetX, offsetY), (float)Math.PI));
+			startingLocations.Add(new Tuple<Vector2, float>(new Vector2(offsetX, (mapHeight * Map.TileSize) - offsetY),0));
+            startingLocations.Add(new Tuple<Vector2, float>(new Vector2((mapWidth * Map.TileSize) - offsetX, (mapHeight * Map.TileSize) - offsetY),(float)Math.PI));
 		}
 
 		private readonly List<Tank> _deadSoldiers = new List<Tank>();
@@ -161,7 +164,7 @@ namespace ShooterGuys
 				}
 				else
 				{
-					_healthText[_playersRemaining[i]].text = "Player " + (i + 1) + ": " + _playersRemaining[i].Health;
+                    _healthText[_playersRemaining[i]].text = "Player " + (_playersRemaining[i].PlayerIndex + 1) + ":";
 				}
 				foreach (Tank otherSoldier in _playersRemaining)
 				{
@@ -170,7 +173,7 @@ namespace ShooterGuys
 					{
 						Vector2 directionVector = otherSoldier.position - _playersRemaining[i].position;
 						directionVector.Normalize();
-						_playersRemaining[i].ApplyForce(3f, -directionVector);
+						_playersRemaining[i].ApplyForce(5f, -directionVector);
 					}
 				}
 			}
@@ -266,30 +269,29 @@ namespace ShooterGuys
 
 		public override void CustomDraw(GameTime gameTime)
 		{
-			for (int i = 0; i < _playersRemaining.Count; i++)
-			{
-				if (usingSplitScreen)
-				{
-					screenManager.GraphicsDevice.Viewport = usedViewPorts[i];
-				}
 
-				_spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointWrap, null, null, null, _players[i].camera.GetTransformation(screenManager.GraphicsDevice));
-                if (_playersRemaining.Count <= 1)
-                {
-                    _wonText.Draw(_spriteBatch, gameTime);
-                }
-				PooledObjects.bullets.ForEach(b => b.Draw(_spriteBatch, gameTime));
-
-				
-                _currentMap.Draw(_spriteBatch, gameTime);
-                for (int j = 0; j < numberOfPlayers; j++)
-                {
-                    _players[j].Draw(_spriteBatch, gameTime);
-                }
-				_spriteBatch.End();
-			}
 			if (usingSplitScreen)
 			{
+                for (int i = 0; i < _playersRemaining.Count; i++)
+                {
+                    screenManager.GraphicsDevice.Viewport = usedViewPorts[i];
+                    _spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointWrap, null, null, null, _players[i].camera.GetTransformation(screenManager.GraphicsDevice));
+                    if (_playersRemaining.Count <= 1)
+                    {
+                        _wonText.Draw(_spriteBatch, gameTime);
+                    }
+                    PooledObjects.bullets.ForEach(b => b.Draw(_spriteBatch, gameTime));
+
+
+                    _currentMap.Draw(_spriteBatch, gameTime);
+                    for (int j = 0; j < numberOfPlayers; j++)
+                    {
+                        _players[j].Draw(_spriteBatch, gameTime);
+                    }
+                    _spriteBatch.End();
+
+                }
+               
 				screenManager.GraphicsDevice.Viewport = guiViewPort;
 				_spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointWrap, null, null, null, camera.GetTransformation(screenManager.GraphicsDevice));
 				for (int i = 0; i < _playersRemaining.Count; i++)
@@ -298,6 +300,22 @@ namespace ShooterGuys
 				}
 				_spriteBatch.End();
 			}
+            else
+            {
+                _spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointWrap, null, null, null, camera.GetTransformation(screenManager.GraphicsDevice));
+                if (_playersRemaining.Count <= 1)
+                {
+                    _wonText.Draw(_spriteBatch, gameTime);
+                }
+                PooledObjects.bullets.ForEach(b => b.Draw(_spriteBatch, gameTime));
+                
+                _currentMap.Draw(_spriteBatch, gameTime);
+                for (int j = 0; j < numberOfPlayers; j++)
+                {
+                    _players[j].Draw(_spriteBatch, gameTime);
+                }
+                _spriteBatch.End();
+            }
 		}
 
 	}

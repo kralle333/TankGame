@@ -34,3 +34,6 @@ D:\Programming\C#\MultiShooterGame\MultiShooterGame\bin\Windows\Debug\Content\Me
 D:\Programming\C#\MultiShooterGame\MultiShooterGame\bin\Windows\Debug\Content\splitscreenborder.xnb
 D:\Programming\C#\MultiShooterGame\MultiShooterGame\bin\Windows\Debug\Content\Graphics\Sprites.xnb
 D:\Programming\C#\MultiShooterGame\MultiShooterGame\bin\Windows\Debug\Content\Sprites.xnb
+D:\Programming\C#\MultiShooterGame\MultiShooterGame\bin\Windows\Debug\Content\Fonts\Font1.xnb
+D:\Programming\C#\MultiShooterGame\MultiShooterGame\bin\Windows\Debug\Content\Fonts\HealthFont.xnb
+D:\Programming\C#\MultiShooterGame\MultiShooterGame\bin\Windows\Debug\Content\Fonts\BigFont.xnb

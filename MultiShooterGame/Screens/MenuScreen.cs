@@ -22,6 +22,7 @@ namespace ShooterGuys
 		public override void LoadContent()
 		{
 			base.LoadContent();
+            screenManager.ClearColor = Color.DarkGreen;
             SpriteFont font = _contentManager.Load<SpriteFont>("Font1");
 			_mainMenu = new MenuSystem("Main menu",new Vector2(GameSettings.ScreenWidth/2-GameSettings.ScreenWidth/7,GameSettings.ScreenHeight/3),font);
 			_mainMenu.AddItem("Play Local Multiplayer");

@@ -32,8 +32,8 @@ namespace ShooterGuys
             position = fromPosition+(direction * 10);
             SetTextureRectangle(new Rectangle(123+(32*team), 64, 5, 5));
 			directionVector = direction;
-			SetScale(size);
-			damage = (int)size * 10;
+			SetScale(size*2);
+            damage = (int)size;
 			_lifeTimer = cTimeToLive;
 		}
 

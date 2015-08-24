@@ -43,7 +43,128 @@ namespace MultiShooterGame.GameObjects
             random = new Random();
         }
 
-        public static Map GenerateMap(int width, int height)
+        #region RoguelikeMap
+        public static Map GenerateRoguelikeMap(int width, int height)
+        {
+            Tile[,] tiles = new Tile[width, height];
+            SetBaseLevel(tiles);
+            MakeWalls(tiles, 1, 1, width - 2, height - 2);
+            Decorate(tiles);
+
+            return new Map(tiles);
+        }
+        private static void Decorate(Tile[,] tiles)
+        {
+            int width = tiles.GetLength(0);
+            int height = tiles.GetLength(1);
+            for (int i = 0; i < random.Next(height) + height; i++)
+            {
+                int xRect = random.Next(1, width - 3);
+                int yRect = random.Next(1, height - 3);
+                int rectWidth = random.Next(2, Math.Min(4, width - xRect));
+                int rectHeight = random.Next(2, Math.Min(4, height - yRect));
+                for (int x = xRect; x < xRect + rectWidth; x++)
+                {
+                    for (int y = yRect; y < yRect + rectHeight; y++)
+                    {
+                        tiles[x, y].SetType(Tile.BlockName.TallGrass);
+                    }
+                }
+            }
+            for (int triesToRemove = random.Next(width)+width; triesToRemove > 0;triesToRemove-- )
+            {
+                int xRect = random.Next(1, width - 3);
+                int yRect = random.Next(1, height - 3);
+                if(tiles[xRect,yRect].Name == Tile.BlockName.BreakableWall)
+                {
+                    tiles[xRect, yRect].SetType(Tile.BlockName.Grass);
+                }
+            }
+        }
+        private static void SetBaseLevel(Tile[,] tiles)
+        {
+            int width = tiles.GetLength(0);
+            int height = tiles.GetLength(1);
+            for (int x = 0; x < width; x++)
+            {
+                for (int y = 0; y < height; y++)
+                {
+                   
+                    if (x == 0 || y == 0 || x == width - 1 || y == height - 1)
+                    {
+                        tiles[x, y] = new Tile(Tile.BlockName.SolidWall, x * Map.TileSize, y * Map.TileSize);
+                    }
+                    else
+                    {
+
+                        tiles[x, y] = new Tile(Tile.BlockName.Grass, x * Map.TileSize, y * Map.TileSize);
+                    }
+                }
+            }
+        }
+        private static void MakeWalls(Tile[,] tiles,int x, int y, int width, int height)
+        {
+            const int minSplit = 4;
+
+            int minSplitX = x + minSplit;
+            int maxSplitX = x + width - minSplit;
+            int minSplitY = y + minSplit;
+            int maxSplitY = y + height - minSplit;
+
+            if (minSplitX >= maxSplitX && minSplitY >= maxSplitY)
+            {
+                return;
+            }
+
+
+            bool doVerticalSplit = false;
+
+            if (minSplitX >= maxSplitX)
+            {
+                doVerticalSplit = false;
+            }
+            else if (minSplitY >= maxSplitY)
+            {
+                doVerticalSplit = true;
+            }
+            else
+            {
+                doVerticalSplit = random.Next() % 2 == 0;
+            }
+            int split;
+            if (doVerticalSplit)
+            {
+                split = random.Next(x + minSplit, x + width - minSplit + 1);
+
+                int yStart = random.Next(y + 1, y + height - 1);
+                int yEnd = random.Next(yStart, y + height - 1);
+                for (int i = y; i < y + height; i++)
+                {
+                    tiles[split, i].SetType(Tile.BlockName.BreakableWall);
+                }
+
+                MakeWalls(tiles,x, y, split - x, height);
+                MakeWalls(tiles, split + 1, y, width - (split - x) - 1, height);
+            }
+            else
+            {
+                split = random.Next(y + minSplit, y + height - minSplit + 1);
+
+                int xStart = random.Next(x + 1, x + width / 2);
+                int xEnd = random.Next(xStart, x + width - 1);
+                for (int i = x; i < x + width; i++)
+                {
+                    tiles[i, split].SetType(Tile.BlockName.BreakableWall);
+                }
+                MakeWalls(tiles, x, y, width, split - y);
+                MakeWalls(tiles, x, split + 1, width, height - (split - y) - 1);
+            }
+
+        }
+        #endregion
+
+        #region PacmanMap
+        public static Map GeneratePacmanMap(int width, int height)
         {
             gridWidth = width/2 - 1;
             gridHeight = height / 2 - 1;
@@ -161,7 +282,6 @@ namespace MultiShooterGame.GameObjects
                         line.Add(second);
                     }
 
-
                     //Add a wall more if the next block is same type, otherwise walking spot
                     if (y == map[0].Length - 1)
                     {
@@ -245,7 +365,6 @@ namespace MultiShooterGame.GameObjects
             }
             return Vector2.Zero;
         }
-
         private static bool isGridFull()
         {
 
@@ -261,7 +380,6 @@ namespace MultiShooterGame.GameObjects
             }
             return true;
         }
-
         private static bool placeIfFit(Vector2 position, Vector2[] type)
         {
             Vector2 newPos = new Vector2();
@@ -290,6 +408,7 @@ namespace MultiShooterGame.GameObjects
             blockName--;
             return true;
         }
+        #endregion
 
     }
 }

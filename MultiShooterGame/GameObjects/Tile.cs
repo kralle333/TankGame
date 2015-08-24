@@ -18,6 +18,7 @@ namespace ShooterGuys
 		private static Dictionary<BlockName, BlockType> _tileBlockTypes = new Dictionary<BlockName, BlockType>();
 		private static Dictionary<BlockName, Rectangle[]> _tileSpriteMap = new Dictionary<BlockName, Rectangle[]>();
 		private int _health;
+        private List<Tile> neighbours = new List<Tile>();
 
 		private static bool _hasInitialized = false;
 		private static int _tileSize = 32;
@@ -28,7 +29,7 @@ namespace ShooterGuys
 				_tileSpriteMap.Add(BlockName.Grass, new Rectangle[] { SpriteHelper.GetSpriteRectangle(_tileSize,_tileSize, 0, 1, 0) });
 				_tileSpriteMap.Add(BlockName.TallGrass, SpriteHelper.GetSpriteRectangleStrip(_tileSize, _tileSize, 0, 1, 1, 1, 2));
 				_tileSpriteMap.Add(BlockName.SolidWall, new Rectangle[] { SpriteHelper.GetSpriteRectangle(_tileSize, _tileSize, 0, 2, 1) });
-				_tileSpriteMap.Add(BlockName.BreakableWall, SpriteHelper.GetSpriteRectangleStrip(_tileSize, _tileSize, 0, 0,0,0,2));
+				_tileSpriteMap.Add(BlockName.BreakableWall, SpriteHelper.GetSpriteRectangleStrip(_tileSize, _tileSize, 0, 0,0,0,3));
 				_tileSpriteMap.Add(BlockName.Gravel, new Rectangle[] { SpriteHelper.GetSpriteRectangle(_tileSize, _tileSize, 0, 1,2) });
 
 
@@ -41,6 +42,7 @@ namespace ShooterGuys
 			}
 			
 		}
+        
 
 		public Tile(BlockName type, int xPos, int yPos)
 			: base("Sprites", xPos, yPos,32,32,true, 0)
@@ -75,11 +77,19 @@ namespace ShooterGuys
 			}
 
 		}
-
+        public void SetNeighbours(List<Tile> tiles)
+        {
+            if(neighbours.Count!=0)
+            {
+                neighbours.Clear();
+                Console.WriteLine("Tile already has neighbours, are you sure you want to do this?");
+            }
+            neighbours.AddRange(tiles);
+        }
 		public void Damage(Bullet b)
 		{
 			if (_name == BlockName.BreakableWall)
-			{
+			{   
 				if (--_health <= 0)
 				{
 					SetType(BlockName.Gravel);
