@@ -37,3 +37,8 @@ D:\Programming\C#\MultiShooterGame\MultiShooterGame\bin\Windows\Debug\Content\Sp
 D:\Programming\C#\MultiShooterGame\MultiShooterGame\bin\Windows\Debug\Content\Fonts\Font1.xnb
 D:\Programming\C#\MultiShooterGame\MultiShooterGame\bin\Windows\Debug\Content\Fonts\HealthFont.xnb
 D:\Programming\C#\MultiShooterGame\MultiShooterGame\bin\Windows\Debug\Content\Fonts\BigFont.xnb
+D:\Programming\C#\MultiShooterGame\MultiShooterGame\bin\Windows\Debug\Content\Graphics\Menu.xnb
+D:\Programming\C#\MultiShooterGame\MultiShooterGame\bin\Windows\Debug\Content\Sfx\hit.xnb
+D:\Programming\C#\MultiShooterGame\MultiShooterGame\bin\Windows\Debug\Content\Sfx\tankExplosion.xnb
+D:\Programming\C#\MultiShooterGame\MultiShooterGame\bin\Windows\Debug\Content\Graphics\Title.xnb
+D:\Programming\C#\MultiShooterGame\MultiShooterGame\bin\Windows\Debug\Content\Title.xnb

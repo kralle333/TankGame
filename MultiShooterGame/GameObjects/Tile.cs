@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using MonoGameLibrary;
 using Microsoft.Xna.Framework;
+using MultiShooterGame.GameObjects;
 
 namespace ShooterGuys
 {
@@ -89,15 +90,26 @@ namespace ShooterGuys
 		public void Damage(Bullet b)
 		{
 			if (_name == BlockName.BreakableWall)
-			{   
-				if (--_health <= 0)
+			{
+                _health -= b.damage;
+				if (_health <= 0)
 				{
 					SetType(BlockName.Gravel);
+                    FragmentCluster fc = PooledObjects.fragmentClusters.Find(x => x.IsUsable);
+                    fc.Explode(this, b.directionVector);
 				}
 				else
 				{
 					NextFrame();
 				}
+                if(b.damage>1)
+                {
+                    b.damage--;
+                    foreach(Tile t in neighbours)
+                    {                        
+                        t.Damage(b);
+                    }
+                }
 			}
 		}
 	}

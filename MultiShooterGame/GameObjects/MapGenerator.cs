@@ -9,39 +9,38 @@ namespace MultiShooterGame.GameObjects
 {
     class MapGenerator
     {
-        private static Vector2[] threeHor = new Vector2[] { new Vector2(0, 0), new Vector2(0, 0), new Vector2(0, 0) };
-        private static Vector2[] threeVer = new Vector2[] { new Vector2(0, 0), new Vector2(0, 1), new Vector2(0, 2) };
 
-        private static Vector2[] LSouthWest = new Vector2[] { new Vector2(0, 0), new Vector2(0, 1), new Vector2(1, 1) };
-        private static Vector2[] LSouthEast = new Vector2[] { new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, -1) };
-        private static Vector2[] LNorthWest = new Vector2[] { new Vector2(0, 0), new Vector2(-1, 0), new Vector2(-1, 1) };
-        private static Vector2[] LNorthEast = new Vector2[] { new Vector2(0, 0), new Vector2(0, -1), new Vector2(1, -1) };
-
-        private static Vector2[] fourBlock = new Vector2[] { new Vector2(0, 0), new Vector2(0, 1), new Vector2(1, 0), new Vector2(1, 1) };
-        private static Vector2[] point = new Vector2[] { new Vector2(0, 0) };
-
-        private static Vector2[][] blockTypes = new Vector2[8][];
-
-
-        private static int gridWidth = 9;
-        private static int gridHeight = 9;
-        private static int[][] grid;
-
-        private static int blockName = -1;
         private static Random random;
-        public static void Initialize()
-        {
-            blockTypes[0] = threeHor;
-            blockTypes[1] = threeVer;
-            blockTypes[2] = LSouthWest;
-            blockTypes[3] = LSouthEast;
-            blockTypes[4] = LNorthWest;
-            blockTypes[5] = LNorthEast;
-            blockTypes[6] = fourBlock;
-            blockTypes[7] = point;
 
-            random = new Random();
-        }
+        private static Vector2[] directions = new Vector2[]{new Vector2(-1, 0), new Vector2(0, -1),
+            new Vector2(1, 0), new Vector2(0, 1)};
+
+        private static void SetNeighbours(Tile[,] tiles, Tile tile)
+        {
+            if (tile.Name == Tile.BlockName.SolidWall)
+            {
+                return;
+            }
+            int x = (int)(tile.position.X / Map.TileSize);
+            int y = (int)(tile.position.Y / Map.TileSize);
+            int width = tiles.GetLength(0);
+            int height = tiles.GetLength(1);
+            List<Tile> walkableNeighbours = new List<Tile>();
+            for (int d = 0; d < directions.Length; d++)
+            {
+                int nX = x + (int)directions[d].X;
+                int nY = y + (int)directions[d].Y;
+                if (nX >= 0 && nX < width && nY >= 0 && nY < height)
+                {
+                    if (tiles[nX, nY].Name != Tile.BlockName.SolidWall)
+                    {
+                        walkableNeighbours.Add(tiles[nX, nY]);
+                    }
+                }
+
+            }
+            tile.SetNeighbours(walkableNeighbours);
+        }       
 
         #region RoguelikeMap
         public static Map GenerateRoguelikeMap(int width, int height)
@@ -50,7 +49,10 @@ namespace MultiShooterGame.GameObjects
             SetBaseLevel(tiles);
             MakeWalls(tiles, 1, 1, width - 2, height - 2);
             Decorate(tiles);
-
+            foreach (Tile t in tiles)
+            {
+                SetNeighbours(tiles, t);
+            }
             return new Map(tiles);
         }
         private static void Decorate(Tile[,] tiles)
@@ -164,6 +166,39 @@ namespace MultiShooterGame.GameObjects
         #endregion
 
         #region PacmanMap
+        private static Vector2[] threeHor = new Vector2[] { new Vector2(0, 0), new Vector2(0, 0), new Vector2(0, 0) };
+        private static Vector2[] threeVer = new Vector2[] { new Vector2(0, 0), new Vector2(0, 1), new Vector2(0, 2) };
+
+        private static Vector2[] LSouthWest = new Vector2[] { new Vector2(0, 0), new Vector2(0, 1), new Vector2(1, 1) };
+        private static Vector2[] LSouthEast = new Vector2[] { new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, -1) };
+        private static Vector2[] LNorthWest = new Vector2[] { new Vector2(0, 0), new Vector2(-1, 0), new Vector2(-1, 1) };
+        private static Vector2[] LNorthEast = new Vector2[] { new Vector2(0, 0), new Vector2(0, -1), new Vector2(1, -1) };
+
+        private static Vector2[] fourBlock = new Vector2[] { new Vector2(0, 0), new Vector2(0, 1), new Vector2(1, 0), new Vector2(1, 1) };
+        private static Vector2[] point = new Vector2[] { new Vector2(0, 0) };
+
+        private static Vector2[][] blockTypes = new Vector2[8][];
+
+
+        private static int gridWidth = 9;
+        private static int gridHeight = 9;
+        private static int[][] grid;
+
+        private static int blockName = -1;
+
+        public static void Initialize()
+        {
+            blockTypes[0] = threeHor;
+            blockTypes[1] = threeVer;
+            blockTypes[2] = LSouthWest;
+            blockTypes[3] = LSouthEast;
+            blockTypes[4] = LNorthWest;
+            blockTypes[5] = LNorthEast;
+            blockTypes[6] = fourBlock;
+            blockTypes[7] = point;
+
+            random = new Random();
+        }
         public static Map GeneratePacmanMap(int width, int height)
         {
             gridWidth = width/2 - 1;
@@ -334,7 +369,10 @@ namespace MultiShooterGame.GameObjects
                     tiles[x, y] = new Tile((Tile.BlockName)type, x * Map.TileSize, y * Map.TileSize);
                 }
             }
-
+            foreach (Tile t in tiles)
+            {
+                SetNeighbours(tiles, t);
+            }
             return new Map(tiles);
         }
         private static void PrintGrid()

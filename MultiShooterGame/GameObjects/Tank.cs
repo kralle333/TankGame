@@ -42,12 +42,15 @@ namespace ShooterGuys
         private PlayerIndex _gamePadIndex;
         public PlayerIndex GamePadIndex { get { return _gamePadIndex; } }
         private ControlScheme _usedControlScheme;
+        private int _team;
+        public int Team { get { return _team; } }
         public Camera2D camera = new Camera2D();
+
 
         //Health
         private const int cStartHealth = 10;
         private int _health;
-        public int Health { get { return _health; }}
+        public int Health { get { return _health; } }
         public void ResetHealth() { _health = cStartHealth; }
         private Vector2 _healthDrawPosition;
         private Sprite _healthBar;
@@ -57,12 +60,22 @@ namespace ShooterGuys
         private float velocity;
         private float oldVelocity;
         private const float acceleration = 0.1f;
+        public float Rotation
+        {
+            set
+            { 
+                rotation = value; 
+                cannon.rotation = value;
+                _orientation = GeometricHelper.GetVectorDirectionFromAngle(rotation);
+            }
+        }
 
         //Weapon fields
         private float _timeCharged = 0;
-        private const float cFullyChargeTime = 2000;
+        private const float cFullyChargeTime = 1500;
         private float _coolDownTimer = 0;
-        private const float cCoolDownTime = 300;
+        private const float cCoolDownTime = 250;
+        private int _chargeLevel = 1;
 
         //Animation
         private int _animationSpeed = 3;
@@ -72,8 +85,7 @@ namespace ShooterGuys
         private Rectangle _screenBounds;
         private Vector2 _addedMovement;
         public bool canAct = true;
-
-        public Sprite cannon;
+        private Sprite cannon;
 
         private Vector2 _receivedForceDirection;
         private float _recievedForceTimer = 200;
@@ -83,9 +95,7 @@ namespace ShooterGuys
         private float _vibrationTimer = 0;
         private float _vibrationTotalTime = 200;
         private bool _isVibrating = false;
-        public float Rotation { set { rotation = value; cannon.rotation = value; } }
-        private int _team;
-        public int Team { get { return _team; } }
+
 
         public Tank(int playerIndex, Vector2 position, int team, ControlScheme controlScheme, Rectangle screenBounds)
             : base("Sprites", position, Map.TileSize, Map.TileSize, true, SpriteHelper.GetDefaultDepth(SpriteHelper.SpriteDepth.Middle))
@@ -109,8 +119,8 @@ namespace ShooterGuys
 
             //Health
             _healthBar = new Sprite("Sprites", Vector2.Zero, SpriteHelper.GetDefaultDepth(SpriteHelper.SpriteDepth.High));
-            _healthBar.SetTextureRectangle(new Rectangle(96 + (32 * team), 80, 8, 16));
-            _healthDrawPosition = new Vector2(150 + (playerIndex*300), -22);
+            _healthBar.SetTextureRectangle(new Rectangle(96 + (32 * team), 80, 16, 32));
+            _healthDrawPosition = new Vector2(164 + (playerIndex * 300), -31);
 
             //Animation
             AddAnimationState(new SpriteState("MovingHorizontal", SpriteHelper.GetSpriteRectangleStrip(32, 32, 0, 3 + _team, 3 + _team, 0, 2), _animationSpeed));
@@ -122,8 +132,10 @@ namespace ShooterGuys
         public override void LoadContent(ContentManager contentManager, SpriteBatch spriteBatch)
         {
             base.LoadContent(contentManager, spriteBatch);
-            _healthBar.LoadContent(contentManager,spriteBatch);
+            _healthBar.LoadContent(contentManager, spriteBatch);
         }
+
+        #region Change State
         public void Reset()
         {
             _health = cStartHealth;
@@ -162,6 +174,9 @@ namespace ShooterGuys
             }
 
         }
+        #endregion
+
+        #region Updating
         public override void Update(GameTime gameTime)
         {
             if (_health > 0)
@@ -282,7 +297,7 @@ namespace ShooterGuys
             oldVelocity = velocity;
             if (_addedMovement != Vector2.Zero)
             {
-                velocity = Math.Min(oldVelocity + acceleration, cMovementSpeed);
+                velocity = Math.Min(oldVelocity + (acceleration), cMovementSpeed / _chargeLevel);
             }
             else
             {
@@ -290,7 +305,6 @@ namespace ShooterGuys
             }
             position += _addedMovement * ((oldVelocity + velocity) / 2);
         }
-
         private void HandleOrientation(InputState inputState)
         {
             switch (_usedControlScheme)
@@ -349,28 +363,26 @@ namespace ShooterGuys
                     isShooting = inputState.IsKeyNewReleased(Keys.Space);
                     isCharging = inputState.IsKeyPressed(Keys.Space);
                     break;
-                case ControlScheme.MouseKeyboard:
-                    isShooting = inputState.IsMouseLeftButtonNewReleased();
-                    isCharging = inputState.IsMouseLeftButtonPressed();
-                    break;
                 default://Xbox controller
                     isShooting = inputState.IsButtonNewReleased(Buttons.X);
                     isCharging = inputState.IsButtonPressed(Buttons.X);
                     break;
             }
             _coolDownTimer -= gameTime.ElapsedGameTime.Milliseconds;
-            if (isCharging && _timeCharged<cFullyChargeTime)
+            if (isCharging && _timeCharged < cFullyChargeTime)
             {
                 _timeCharged = Math.Min(_timeCharged + gameTime.ElapsedGameTime.Milliseconds, cFullyChargeTime);
-                if(_timeCharged>=cFullyChargeTime)
+                if (_timeCharged >= cFullyChargeTime)
                 {
                     _scale = 1.4f;
                     cannon.SetScale(1.4f);
+                    _chargeLevel = 3;
                 }
-                else if(_timeCharged>=cFullyChargeTime/2)
+                else if (_timeCharged >= cFullyChargeTime / 2)
                 {
                     _scale = 1.2f;
                     cannon.SetScale(1.2f);
+                    _chargeLevel = 2;
                 }
             }
             else
@@ -379,26 +391,18 @@ namespace ShooterGuys
                 if (isShooting && _coolDownTimer <= 0)
                 {
                     Vector2 bulletPosition = position + Origin;//Add some offset here
-
-                    int sizeOfBullet = 1;
-                    if (_timeCharged >= cFullyChargeTime)
-                    {
-                        sizeOfBullet = 3;
-                    }
-                    else if (_timeCharged >= cFullyChargeTime / 2)
-                    {
-                        sizeOfBullet = 2;
-                    }
-                    PooledObjects.bullets.Find(b => !b.isVisible).Activate(position, _orientation, 10, sizeOfBullet, _team);
+                    PooledObjects.bullets.Find(b => !b.isVisible).Activate(position, _orientation, 10, _chargeLevel, _team);
                     _timeCharged = 0;
                     _coolDownTimer = cCoolDownTime;
                     _scale = 1f;
+                    _chargeLevel = 1;
                     cannon.SetScale(1f);
-                    ApplyForce(sizeOfBullet*sizeOfBullet, -_orientation);
+                    ApplyForce(_chargeLevel * _chargeLevel * _chargeLevel, -_orientation);
                 }
             }
 
         }
+        #endregion
 
         public override void Draw(GameTime gameTime)
         {

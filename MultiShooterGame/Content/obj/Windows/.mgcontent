@@ -8,5 +8,9 @@
     <File>D:/Programming/C#/MultiShooterGame/MultiShooterGame/Content/Fonts/Font1.spritefont</File>
     <File>D:/Programming/C#/MultiShooterGame/MultiShooterGame/Content/Fonts/HealthFont.spritefont</File>
     <File>D:/Programming/C#/MultiShooterGame/MultiShooterGame/Content/Fonts/BigFont.spritefont</File>
+    <File>D:/Programming/C#/MultiShooterGame/MultiShooterGame/Content/Sfx/hit.wav</File>
+    <File>D:/Programming/C#/MultiShooterGame/MultiShooterGame/Content/Sfx/tankExplosion.wav</File>
+    <File>D:/Programming/C#/MultiShooterGame/MultiShooterGame/Content/Graphics/Menu.png</File>
+    <File>D:/Programming/C#/MultiShooterGame/MultiShooterGame/Content/Graphics/Title.png</File>
   </SourceFiles>
 </SourceFileCollection>

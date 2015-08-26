@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PipelineBuildEvent xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <SourceFile>D:/Programming/C#/MultiShooterGame/MultiShooterGame/Content/Graphics/Sprites.png</SourceFile>
-  <SourceTime>2015-08-25T12:18:08.2930516+02:00</SourceTime>
-  <DestFile>D:/Programming/C#/MultiShooterGame/MultiShooterGame/Content/bin/Windows/Graphics/Sprites.xnb</DestFile>
-  <DestTime>2015-08-25T12:18:16.3166311+02:00</DestTime>
+  <SourceFile>D:/Programming/C#/MultiShooterGame/MultiShooterGame/Content/Graphics/Title.png</SourceFile>
+  <SourceTime>2015-08-26T01:52:35.5971888+02:00</SourceTime>
+  <DestFile>D:/Programming/C#/MultiShooterGame/MultiShooterGame/Content/bin/Windows/Graphics/Title.xnb</DestFile>
+  <DestTime>2015-08-26T01:52:49.5170549+02:00</DestTime>
   <Importer>TextureImporter</Importer>
   <ImporterTime>2015-03-16T04:01:46+01:00</ImporterTime>
   <Processor>TextureProcessor</Processor>
