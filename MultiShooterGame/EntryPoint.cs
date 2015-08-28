@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using Microsoft.Xna.Framework;
 using MonoGameLibrary;
-using ShooterGuys.Screens;
+using MultiShooterGame.Screens;
 
-namespace ShooterGuys
+namespace MultiShooterGame
 {
 		//Copy this to your new project
 		class EntryPoint : Game

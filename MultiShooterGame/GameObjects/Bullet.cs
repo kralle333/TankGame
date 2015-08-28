@@ -5,7 +5,7 @@ using System.Text;
 using Microsoft.Xna.Framework;
 using MonoGameLibrary;
 
-namespace ShooterGuys
+namespace MultiShooterGame
 {
 	class Bullet : Sprite
 	{
@@ -18,9 +18,9 @@ namespace ShooterGuys
         private int _team = -1;
         public int Team { get { return _team; } }
 		public Bullet()
-			: base("Sprites", 0, 0, new Rectangle(64,64,5,5), 0.8f)
+			: base("Sprites", 0, 0, new Rectangle(64,64,8,6), 0.8f)
 		{
-            SetOrigin(2.5f, 2.5f);
+            SetOrigin(4, 3f);
 			Hide();
 		}
 
@@ -30,7 +30,8 @@ namespace ShooterGuys
             _speed = 10;
             _team = team;
             position = fromPosition+(direction * 10);
-            SetTextureRectangle(new Rectangle(123+(32*team), 64, 5, 5));
+            SetTextureRectangle(new Rectangle(112+(32*team), 80, 8, 6));
+            rotation = GeometricHelper.GetAngleFromVectorDirection(direction);
 			directionVector = direction;
 			SetScale(size*2);
             damage = (int)size;

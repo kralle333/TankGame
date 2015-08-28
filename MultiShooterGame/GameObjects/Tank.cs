@@ -7,8 +7,9 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Content;
+using MultiShooterGame.GameObjects;
 
-namespace ShooterGuys
+namespace MultiShooterGame.GameObjects
 {
     class Tank : Sprite
     {
@@ -26,13 +27,15 @@ namespace ShooterGuys
             switch (team)
             {
                 case 0: return Color.Blue;
-                case 1: return Color.Brown;
+                case 1: return Color.RosyBrown;
                 case 2: return Color.Red;
                 case 3: return Color.Yellow;
                 case 4: return Color.Purple;
                 case 5: return Color.DarkCyan;
                 case 6: return Color.Pink;
                 case 7: return Color.Orange;
+                case 8: return Color.DarkCyan;
+                case 9: return Color.White;
             }
             Console.WriteLine("Unknown Color!");
             return Color.Magenta;
@@ -46,25 +49,28 @@ namespace ShooterGuys
         public int Team { get { return _team; } }
         public Camera2D camera = new Camera2D();
 
+        private Vector2 _cannonOrientation = new Vector2();
+        private bool _isCannonLocked = true;
+        private bool _useRightStick = false;
 
         //Health
         private const int cStartHealth = 10;
         private int _health;
         public int Health { get { return _health; } }
         public void ResetHealth() { _health = cStartHealth; }
-        private Vector2 _healthDrawPosition;
-        private Sprite _healthBar;
+        public Vector2 healthDrawPosition;
+        public Sprite healthBar;
 
         //Movement
-        private const float cMovementSpeed = 3f;
+        private float _movementSpeed =3f;
         private float velocity;
         private float oldVelocity;
-        private const float acceleration = 0.1f;
+        private const float acceleration = 0.08f;
         public float Rotation
         {
             set
-            { 
-                rotation = value; 
+            {
+                rotation = value;
                 cannon.rotation = value;
                 _orientation = GeometricHelper.GetVectorDirectionFromAngle(rotation);
             }
@@ -74,8 +80,10 @@ namespace ShooterGuys
         private float _timeCharged = 0;
         private const float cFullyChargeTime = 1500;
         private float _coolDownTimer = 0;
-        private const float cCoolDownTime = 250;
+        private float coolDownTime = 300;
         private int _chargeLevel = 1;
+        private bool _hasBigAmmo = false;
+        private bool _hasFastAttack = false;
 
         //Animation
         private int _animationSpeed = 3;
@@ -96,6 +104,8 @@ namespace ShooterGuys
         private float _vibrationTotalTime = 200;
         private bool _isVibrating = false;
 
+        private Dictionary<Powerup.PowerupType, float> _powerupTimers = new Dictionary<Powerup.PowerupType, float>();
+        private List<Powerup.PowerupType> _activePowerups = new List<Powerup.PowerupType>();
 
         public Tank(int playerIndex, Vector2 position, int team, ControlScheme controlScheme, Rectangle screenBounds)
             : base("Sprites", position, Map.TileSize, Map.TileSize, true, SpriteHelper.GetDefaultDepth(SpriteHelper.SpriteDepth.Middle))
@@ -118,9 +128,9 @@ namespace ShooterGuys
             _spriteOverlays.Add(cannon);
 
             //Health
-            _healthBar = new Sprite("Sprites", Vector2.Zero, SpriteHelper.GetDefaultDepth(SpriteHelper.SpriteDepth.High));
-            _healthBar.SetTextureRectangle(new Rectangle(96 + (32 * team), 80, 16, 32));
-            _healthDrawPosition = new Vector2(164 + (playerIndex * 300), -31);
+            healthBar = new Sprite("Sprites", Vector2.Zero, SpriteHelper.GetDefaultDepth(SpriteHelper.SpriteDepth.High));
+            healthBar.SetTextureRectangle(new Rectangle(96 + (32 * team), 80, 16, 32));
+            healthDrawPosition = new Vector2(140 + (playerIndex * 300), -31);
 
             //Animation
             AddAnimationState(new SpriteState("MovingHorizontal", SpriteHelper.GetSpriteRectangleStrip(32, 32, 0, 3 + _team, 3 + _team, 0, 2), _animationSpeed));
@@ -132,7 +142,11 @@ namespace ShooterGuys
         public override void LoadContent(ContentManager contentManager, SpriteBatch spriteBatch)
         {
             base.LoadContent(contentManager, spriteBatch);
-            _healthBar.LoadContent(contentManager, spriteBatch);
+            healthBar.LoadContent(contentManager, spriteBatch);
+            _powerupTimers[Powerup.PowerupType.Speed] = 0;
+            _powerupTimers[Powerup.PowerupType.AttackSpeed] = 0;
+            _powerupTimers[Powerup.PowerupType.BigAmmo] = 0;
+            _powerupTimers[Powerup.PowerupType.Mines] = 0;
         }
 
         #region Change State
@@ -143,6 +157,40 @@ namespace ShooterGuys
             _orientation = new Vector2(1, 0);
             SetCurrentAnimationState(_currentAnimationState);
             Show();
+        }
+        private void UpdatePowerupTimers(GameTime gameTime)
+        {
+            List<Powerup.PowerupType> powerupsToRemove = new List<Powerup.PowerupType>();
+            foreach (Powerup.PowerupType powerup in _activePowerups)
+            {
+                
+                if(_powerupTimers[powerup]<=0)
+                {
+                    powerupsToRemove.Add(powerup);
+                    switch (powerup)
+                    {
+                        case Powerup.PowerupType.Speed: _movementSpeed = 3f; break;
+                        case Powerup.PowerupType.BigAmmo: 
+                            _hasBigAmmo = false; 
+                            if(_chargeLevel==1)
+                            {
+                                _scale = 1f;
+                                cannon.SetScale(1f);
+                            }
+                            
+                            break;
+                        case Powerup.PowerupType.AttackSpeed:
+                            _hasFastAttack = false;
+                            coolDownTime = 300;
+                            break;
+                    }
+                }
+                else
+                {
+                    _powerupTimers[powerup] -= gameTime.ElapsedGameTime.Milliseconds;
+                }
+            }
+            powerupsToRemove.ForEach(p => _activePowerups.Remove(p));
         }
         public void ApplyForce(float magnitude, Vector2 direction)
         {
@@ -165,7 +213,7 @@ namespace ShooterGuys
             {
                 _receivedForceDirection = bullet.directionVector;
                 _recievedForceTimer = 0;
-                _recievedForceMagnitude = bullet.damage / 4;
+                _recievedForceMagnitude = bullet.damage * 3f;
                 if (IsXboxControllerScheme(_usedControlScheme))
                 {
                     _isVibrating = true;
@@ -173,6 +221,25 @@ namespace ShooterGuys
                 }
             }
 
+        }
+        public void GetPowerup(Powerup.PowerupType powerup)
+        {
+            _powerupTimers[powerup] = 6000;
+            _activePowerups.Add(powerup);
+            switch(powerup)
+            {
+                case Powerup.PowerupType.AttackSpeed:
+                    _hasFastAttack=true;
+                    coolDownTime = 100f;
+                    break;
+                case Powerup.PowerupType.BigAmmo: 
+                    _hasBigAmmo = true; 
+                    _scale = 1.2f;
+                    cannon.SetScale(1.2f); 
+                    break;
+                case Powerup.PowerupType.Mines: break;
+                case Powerup.PowerupType.Speed: _movementSpeed = 5f; break;
+            }
         }
         #endregion
 
@@ -185,7 +252,7 @@ namespace ShooterGuys
                 {
                     float cameraX = position.X - (_screenBounds.Width / 2) + (Map.TileSize / 2);
                     float cameraY = position.Y - (_screenBounds.Height / 2) + (Map.TileSize / 2);
-                    camera.SetPosition(cameraX, cameraY);
+                    camera.Position = new Vector2(cameraX, cameraY);
                 }
 
                 if (_recievedForceTimer < _recievedForceTotalTime)
@@ -193,6 +260,7 @@ namespace ShooterGuys
                     _recievedForceTimer += gameTime.ElapsedGameTime.Milliseconds;
                     position += _receivedForceDirection * _recievedForceMagnitude;
                     _recievedForceMagnitude /= 2;
+                    HandleBoundaryCheck();
                 }
                 if (_isVibrating)
                 {
@@ -209,7 +277,7 @@ namespace ShooterGuys
                         _vibrationTimer += gameTime.ElapsedGameTime.Milliseconds;
                     }
                 }
-
+                UpdatePowerupTimers(gameTime);
             }
         }
         public void HandleWallCollisions(Map currentMap)
@@ -223,13 +291,14 @@ namespace ShooterGuys
             Tile down = tileY + 1 < currentMap.Height ? currentMap.tiles[tileX, tileY + 1] : null;
 
             float diff = 0;
-
+            bool collisionWasSeen = false;
             if (left != null && left.Type == Tile.BlockType.Solid)
             {
                 diff = position.X - left.Center.X;
                 if (diff < 32)
                 {
                     position.X = left.Center.X + 16 + Origin.X;
+                    collisionWasSeen = true;
                 }
             }
             if (right != null && right.Type == Tile.BlockType.Solid)
@@ -238,6 +307,7 @@ namespace ShooterGuys
                 if (diff < 32)
                 {
                     position.X = right.Center.X - (16 + Origin.X);
+                    collisionWasSeen = true;
                 }
             }
             if (up != null && up.Type == Tile.BlockType.Solid)
@@ -246,6 +316,7 @@ namespace ShooterGuys
                 if (diff < 32)
                 {
                     position.Y = up.Center.Y + 16 + Origin.Y;
+                    collisionWasSeen = true;
                 }
             }
             if (down != null && down.Type == Tile.BlockType.Solid)
@@ -254,7 +325,31 @@ namespace ShooterGuys
                 if (diff < 32)
                 {
                     position.Y = down.Center.Y - (16 + Origin.Y);
+                    collisionWasSeen = true;
                 }
+            }
+            if(collisionWasSeen)
+            {
+                _recievedForceTimer = 0;
+            }
+        }
+        public void HandleBoundaryCheck()
+        {
+            if (position.X < 48)
+            {
+                position.X = 48;
+            }
+            if (position.X > GameSettings.ScreenWidth - 48)
+            {
+                position.X = GameSettings.ScreenWidth - 48;
+            }
+            if (position.Y < 48)
+            {
+                position.Y = 48;
+            }
+            if (position.Y > GameSettings.ScreenHeight - 48)
+            {
+                position.Y = GameSettings.ScreenHeight - 48;
             }
         }
         public void HandleInput(InputState inputState, GameTime gameTime)
@@ -297,7 +392,7 @@ namespace ShooterGuys
             oldVelocity = velocity;
             if (_addedMovement != Vector2.Zero)
             {
-                velocity = Math.Min(oldVelocity + (acceleration), cMovementSpeed / _chargeLevel);
+                velocity = Math.Min(oldVelocity + (acceleration), _movementSpeed / _chargeLevel);
             }
             else
             {
@@ -318,6 +413,32 @@ namespace ShooterGuys
                     }
                     break;
                 default://Xbox controller
+                    if (_useRightStick)
+                    {
+
+                        if (!inputState.IsButtonNewPressed(Buttons.RightStick))
+                        {
+                            _isCannonLocked = true;
+                        }
+                        Vector2 cannonOrientation = inputState.GetRightStickPosition();
+                        if (cannonOrientation.X != 0 || cannonOrientation.Y != 0)
+                        {
+                            if (_isCannonLocked)
+                            {
+                                _isCannonLocked = false;
+                            }
+                            _cannonOrientation = cannonOrientation;
+                            _cannonOrientation.Y *= -1;
+                            _cannonOrientation.Normalize();
+                            cannon.rotation = GeometricHelper.GetAngleFromVectorDirection(_cannonOrientation);
+                        }
+                        if (_isCannonLocked)
+                        {
+                            _cannonOrientation = _orientation;
+                            cannon.rotation = rotation;
+                        }
+                    }
+
                     if (_addedMovement.X != 0 || _addedMovement.Y != 0)
                     {
                         _orientation = inputState.GetLeftStickPosition();
@@ -325,6 +446,7 @@ namespace ShooterGuys
                         _orientation.Normalize();
                         rotation = GeometricHelper.GetAngleFromVectorDirection(_orientation);
                     }
+                    
                     break;
             }
 
@@ -334,7 +456,6 @@ namespace ShooterGuys
             {
                 newAnimation = animationMap[currentPosition];
             }
-
 
             if (!newAnimation.Equals(_currentAnimationState))
             {
@@ -354,6 +475,12 @@ namespace ShooterGuys
         }
         private void HandleShooting(InputState inputState, GameTime gameTime)
         {
+            _coolDownTimer -= gameTime.ElapsedGameTime.Milliseconds;
+            if (_hasFastAttack && _coolDownTimer <= 0)
+            {
+                Shoot();
+                return;
+            }
             bool isShooting = false;
             bool isCharging = false;
             switch (_usedControlScheme)
@@ -364,15 +491,24 @@ namespace ShooterGuys
                     isCharging = inputState.IsKeyPressed(Keys.Space);
                     break;
                 default://Xbox controller
-                    isShooting = inputState.IsButtonNewReleased(Buttons.X);
-                    isCharging = inputState.IsButtonPressed(Buttons.X);
+                    if(!_useRightStick)
+                    {
+                        isShooting = inputState.IsButtonNewReleased(Buttons.X);
+                        isCharging = inputState.IsButtonPressed(Buttons.X);
+                    }
+                    else
+                    {
+                        isShooting = inputState.IsButtonNewReleased(Buttons.RightTrigger);
+                        isCharging = inputState.IsButtonPressed(Buttons.RightTrigger);
+                    }
+                    
                     break;
             }
-            _coolDownTimer -= gameTime.ElapsedGameTime.Milliseconds;
+           
             if (isCharging && _timeCharged < cFullyChargeTime)
             {
                 _timeCharged = Math.Min(_timeCharged + gameTime.ElapsedGameTime.Milliseconds, cFullyChargeTime);
-                if (_timeCharged >= cFullyChargeTime)
+                if (_timeCharged >= cFullyChargeTime || (_timeCharged >= cFullyChargeTime / 2 && _hasBigAmmo))
                 {
                     _scale = 1.4f;
                     cannon.SetScale(1.4f);
@@ -390,30 +526,43 @@ namespace ShooterGuys
 
                 if (isShooting && _coolDownTimer <= 0)
                 {
-                    Vector2 bulletPosition = position + Origin;//Add some offset here
-                    PooledObjects.bullets.Find(b => !b.isVisible).Activate(position, _orientation, 10, _chargeLevel, _team);
-                    _timeCharged = 0;
-                    _coolDownTimer = cCoolDownTime;
-                    _scale = 1f;
-                    _chargeLevel = 1;
-                    cannon.SetScale(1f);
-                    ApplyForce(_chargeLevel * _chargeLevel * _chargeLevel, -_orientation);
+                    Shoot();
                 }
             }
 
+        }
+        private void Shoot()
+        {
+            Vector2 bulletPosition = position + Origin;//Add some offset here
+            Vector2 direction = _useRightStick ? _cannonOrientation : _orientation;
+            PooledObjects.bullets.Find(b => !b.isVisible).Activate(position, direction, 10, _hasBigAmmo ? 2 : _chargeLevel, _team);
+            _timeCharged = 0;
+            _coolDownTimer = coolDownTime;
+
+            _chargeLevel = 1;
+            if (_hasBigAmmo)
+            {
+                _scale = 1.2f;
+                cannon.SetScale(1.2f);
+            }
+            else
+            {
+                _scale = 1f;
+                cannon.SetScale(1f);
+            }
+
+            ApplyForce(_chargeLevel * _chargeLevel * _chargeLevel, -_cannonOrientation);
         }
         #endregion
 
         public override void Draw(GameTime gameTime)
         {
             cannon.position = position;
-            cannon.rotation = rotation;
-            for (int i = 0; i < _health; i++)
+            if (!_useRightStick)
             {
-                _healthBar.position = _healthDrawPosition;
-                _healthBar.position.X += i * _healthBar.Width;
-                _healthBar.Draw(gameTime);
+                cannon.rotation = rotation;
             }
+
             base.Draw(gameTime);
         }
 

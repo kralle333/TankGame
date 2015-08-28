@@ -27,7 +27,6 @@ D:\Programming\C#\MultiShooterGame\MultiShooterGame\obj\x86\Debug\MultiShooterGa
 D:\Programming\C#\MultiShooterGame\MultiShooterGame\obj\x86\Debug\MultiShooterGame.pdb
 D:\Programming\C#\MultiShooterGame\MultiShooterGame\bin\Windows\Debug\Content\Font1.xnb
 D:\Programming\C#\MultiShooterGame\MultiShooterGame\bin\Windows\Debug\Content\BigFont.xnb
-D:\Programming\C#\MultiShooterGame\MultiShooterGame\bin\Windows\Debug\Content\bullets.xnb
 D:\Programming\C#\MultiShooterGame\MultiShooterGame\bin\Windows\Debug\Content\HealthFont.xnb
 D:\Programming\C#\MultiShooterGame\MultiShooterGame\bin\Windows\Debug\Content\Menu.xnb
 D:\Programming\C#\MultiShooterGame\MultiShooterGame\bin\Windows\Debug\Content\MenuMarked.xnb

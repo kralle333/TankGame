@@ -7,24 +7,29 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework;
 using MonoGameLibrary.Drawing;
 using Microsoft.Xna.Framework.Input;
+using MonoGameLibrary.Menus;
+using MultiShooterGame.GameObjects;
 
-namespace ShooterGuys.Screens
+namespace MultiShooterGame.Screens
 {
     class PlayerSelectScreen : GameScreen
     {
         private SpriteFont _font;
-        private ShapeRenderer _shapeRenderer;
+        private List<Sprite> _guiParts = new List<Sprite>();
+        private MenuFrame _menuFrame;
 
         private bool[] _gamePadSlotsUsed = new bool[4];
         private int _keyboardSlotsLeft = 1;
 
         private Tank.ControlScheme[] _selectedControls = new Tank.ControlScheme[8];
 
+        private float _currentRotation = 0;
         private int _playersPlaying = 0;
 
         private Tank[] _tankSprites = new Tank[10];
         private int[] _selectedTeams = new int[4];
         private string _helpText = "Press (A)/Enter to add Player \nPress (B)/Q to remove Player \nPress (Start)/S to start game";
+        
         public PlayerSelectScreen()
             : base(ScreenType.Standard)
         {
@@ -35,19 +40,20 @@ namespace ShooterGuys.Screens
             base.LoadContent();
             screenManager.ClearColor = Color.Black;
             _font = _contentManager.Load<SpriteFont>("Font1");
-            _shapeRenderer = new ShapeRenderer("splitscreenborder");
-            _shapeRenderer.LoadContent(_contentManager);
+
             for (int i = 0; i < 10; i++)
             {
                 _tankSprites[i] = new Tank(i,new Vector2(300 + (i * 300), 300), i, Tank.ControlScheme.Empty, new Rectangle(0, 0, (int)GameSettings.GetResolution().X, (int)GameSettings.GetResolution().Y));
                 _tankSprites[i].camera = this.camera;
                 _tankSprites[i].LoadContent(_contentManager, _spriteBatch);
                 _tankSprites[i].Hide();
-                _tankSprites[i].rotationSpeed =0.05f;
+                _tankSprites[i].rotation = _currentRotation;
             }
             for (int i = 0; i < 4; i++) _selectedTeams[i] = -1;
+            _menuFrame = new MenuFrame(new Rectangle(80, 180, 1200, 320), "Menu",new Rectangle(0,0,16,16));
+            _menuFrame.LoadContent(_contentManager);
         }
-
+ 
         public override void HandleInput(InputState inputState)
         {
             base.HandleInput(inputState);
@@ -231,11 +237,12 @@ namespace ShooterGuys.Screens
 
         public override void CustomDraw(GameTime gameTime)
         {
+            _currentRotation += 0.03f;
             _spriteBatch.Begin();
             _spriteBatch.DrawString(_font, _helpText, new Vector2(GameSettings.ScreenWidth / 2 - _font.MeasureString(_helpText).X / 2, GameSettings.ScreenHeight * 0.1f), Color.White);
             for (int i = 0; i < 4; i++)
             {
-                _shapeRenderer.DrawRectangle(_spriteBatch, 80 + (i * 300), 180, 300, 500);
+                _tankSprites[i].rotation = _currentRotation;
                 _spriteBatch.DrawString(_font, "Player " + (i + 1), new Vector2(80 + 150 - (_font.MeasureString("Player " + (i + 1)).X / 2) + (i * 300), 200), Color.White);
                 if (_selectedControls[i] != Tank.ControlScheme.Empty)
                 {
@@ -245,7 +252,7 @@ namespace ShooterGuys.Screens
                     _tankSprites[_selectedTeams[i]].Draw(gameTime);
                 }
             }
-
+            _menuFrame.Draw(_spriteBatch, gameTime);
             _spriteBatch.End();
             base.CustomDraw(gameTime);
         }

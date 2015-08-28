@@ -6,7 +6,7 @@ using MonoGameLibrary;
 using Microsoft.Xna.Framework;
 using MultiShooterGame.GameObjects;
 
-namespace ShooterGuys
+namespace MultiShooterGame
 {
 	class Tile : Sprite
 	{
@@ -19,6 +19,7 @@ namespace ShooterGuys
 		private static Dictionary<BlockName, BlockType> _tileBlockTypes = new Dictionary<BlockName, BlockType>();
 		private static Dictionary<BlockName, Rectangle[]> _tileSpriteMap = new Dictionary<BlockName, Rectangle[]>();
 		private int _health;
+        public int Health { get { return _health; } }
         private List<Tile> neighbours = new List<Tile>();
 
 		private static bool _hasInitialized = false;
