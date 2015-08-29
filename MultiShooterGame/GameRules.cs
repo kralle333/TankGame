@@ -7,9 +7,11 @@ namespace MultiShooterGame
 {
     class GameRules
     {
-        public enum GameType { KillToWin, WinRoundsToWin, CollectToWin }
-        public static GameType selectedGameType;
-        public static int numberToWin = 0;
+        public enum MapSelectionSetting { RandomGenerated,Shuffle,OneMap}
+        public static MapSelectionSetting _mapSelectionSetting;
+        public enum GameType {WinRoundsToWin,KillToWin, KillToWinActiveRespawn, CollectToWin}
+        public static GameType selectedGameType = GameType.WinRoundsToWin;
+        public static int numberToWin = 15;
         public static int[] playerScores;
 
     }

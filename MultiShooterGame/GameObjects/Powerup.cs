@@ -13,20 +13,28 @@ namespace MultiShooterGame.GameObjects
         public enum PowerupType {Pickup, Speed, AttackSpeed, BigAmmo,Mines }
         private PowerupType _type;
         public PowerupType Type { get { return _type; } }
+        private const int timeToGetVisible = 2000;
+        private int visibleTimer = 0;
 
         private bool _isOpened = false;
-        public Powerup(int x, int y, PowerupType powerupType):base("Sprites",x,y,new Rectangle(64,0,32,32),0.4f)
+        public Powerup(int x, int y, PowerupType powerupType)
+            : base("Sprites", x, y, new Rectangle(96 + 32 * (int)powerupType, 144, 32, 32), 0.4f)
         {
             _type = powerupType;
+            color.A = 0;
+            visibleTimer = 0;
         }
-        
-        public void Open()
+
+        public override void Draw(Microsoft.Xna.Framework.Graphics.SpriteBatch spriteBatch, GameTime gameTime)
         {
-            if(!_isOpened)
+            if (visibleTimer<timeToGetVisible)
             {
-                _isOpened = true;
-                SetTextureRectangle(new Rectangle(96+32*(int)_type,144,32,32));
+                visibleTimer += gameTime.ElapsedGameTime.Milliseconds;
+                float alphaValue = (255f * ((float)visibleTimer / timeToGetVisible));
+                Console.WriteLine(alphaValue);
+                color.A = (Byte)alphaValue;
             }
+            base.Draw(spriteBatch, gameTime);
         }
     }
 }

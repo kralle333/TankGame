@@ -52,10 +52,6 @@ namespace MultiShooterGame
 			SetType(type);
 		}
 
-		public void HandleMovement()
-		{
-			
-		}
 
 		public void SetType(BlockName type)
 		{

@@ -8,6 +8,7 @@ using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Content;
 using MultiShooterGame.GameObjects;
+using MonoGameLibrary.Drawing;
 
 namespace MultiShooterGame.GameObjects
 {
@@ -27,14 +28,14 @@ namespace MultiShooterGame.GameObjects
             switch (team)
             {
                 case 0: return Color.Blue;
-                case 1: return Color.RosyBrown;
+                case 1: return Color.FromNonPremultiplied(156, 128, 87, 255);
                 case 2: return Color.Red;
                 case 3: return Color.Yellow;
                 case 4: return Color.Purple;
-                case 5: return Color.DarkCyan;
+                case 5: return Color.FromNonPremultiplied(87, 156, 130, 255);
                 case 6: return Color.Pink;
                 case 7: return Color.Orange;
-                case 8: return Color.DarkCyan;
+                case 8: return Color.FromNonPremultiplied(0, 107, 107, 255);
                 case 9: return Color.White;
             }
             Console.WriteLine("Unknown Color!");
@@ -53,16 +54,19 @@ namespace MultiShooterGame.GameObjects
         private bool _isCannonLocked = true;
         private bool _useRightStick = false;
 
-        //Health
+        //Stats
+        private HealthBar _healthBar;
         private const int cStartHealth = 10;
         private int _health;
         public int Health { get { return _health; } }
         public void ResetHealth() { _health = cStartHealth; }
-        public Vector2 healthDrawPosition;
-        public Sprite healthBar;
+        public Vector2 statsBarPosition;
+        private Sprite tankSprite;
+        private Sprite powerupRectangle;
+        public bool showHealthStatus = true;
 
         //Movement
-        private float _movementSpeed =3f;
+        private float _movementSpeed = 3f;
         private float velocity;
         private float oldVelocity;
         private const float acceleration = 0.08f;
@@ -104,8 +108,12 @@ namespace MultiShooterGame.GameObjects
         private float _vibrationTotalTime = 200;
         private bool _isVibrating = false;
 
-        private Dictionary<Powerup.PowerupType, float> _powerupTimers = new Dictionary<Powerup.PowerupType, float>();
-        private List<Powerup.PowerupType> _activePowerups = new List<Powerup.PowerupType>();
+        //Powerups
+        private float _powerupTimer;
+        private Powerup powerUpInSlot;
+        public bool HasRoomForPowerup { get { return powerUpInSlot == null; } }
+        private Powerup activePowerup;
+        private SpriteText _timerText;
 
         public Tank(int playerIndex, Vector2 position, int team, ControlScheme controlScheme, Rectangle screenBounds)
             : base("Sprites", position, Map.TileSize, Map.TileSize, true, SpriteHelper.GetDefaultDepth(SpriteHelper.SpriteDepth.Middle))
@@ -127,26 +135,31 @@ namespace MultiShooterGame.GameObjects
             cannon.position = position;
             _spriteOverlays.Add(cannon);
 
-            //Health
-            healthBar = new Sprite("Sprites", Vector2.Zero, SpriteHelper.GetDefaultDepth(SpriteHelper.SpriteDepth.High));
-            healthBar.SetTextureRectangle(new Rectangle(96 + (32 * team), 80, 16, 32));
-            healthDrawPosition = new Vector2(140 + (playerIndex * 300), -31);
-
             //Animation
             AddAnimationState(new SpriteState("MovingHorizontal", SpriteHelper.GetSpriteRectangleStrip(32, 32, 0, 3 + _team, 3 + _team, 0, 2), _animationSpeed));
             _orientation = new Vector2(1, 0);
             _currentAnimationState = "MovingHorizontal";
             SetCurrentAnimationState(_currentAnimationState);
             InitiateAnimationStates();
+
+            //Statbar
+            statsBarPosition = new Vector2(20 + (playerIndex * 290), 24);
+            if (playerIndex > 1)
+            {
+                statsBarPosition.X -= 90;
+            }
+            tankSprite = new Sprite("Sprites", (int)statsBarPosition.X, (int)statsBarPosition.Y, new Rectangle(96 + (32 * team), 112, 32, 32), 1);
+            _healthBar = new HealthBar((int)statsBarPosition.X + 42, (int)statsBarPosition.Y, 116, 30, Color.Green, Color.Red, Color.Black);
+            powerupRectangle = new Sprite("Sprites", _healthBar.x+100+32,21, 1);
+            powerupRectangle.SetTextureRectangle(new Rectangle(0, 176, 36, 36));
         }
         public override void LoadContent(ContentManager contentManager, SpriteBatch spriteBatch)
         {
             base.LoadContent(contentManager, spriteBatch);
-            healthBar.LoadContent(contentManager, spriteBatch);
-            _powerupTimers[Powerup.PowerupType.Speed] = 0;
-            _powerupTimers[Powerup.PowerupType.AttackSpeed] = 0;
-            _powerupTimers[Powerup.PowerupType.BigAmmo] = 0;
-            _powerupTimers[Powerup.PowerupType.Mines] = 0;
+            tankSprite.LoadContent(contentManager, spriteBatch);
+            powerupRectangle.LoadContent(contentManager, spriteBatch);
+            _timerText = new SpriteText("HealthFont", "4",statsBarPosition);
+            _timerText.LoadContent(contentManager, spriteBatch);
         }
 
         #region Change State
@@ -156,41 +169,38 @@ namespace MultiShooterGame.GameObjects
             _currentAnimationState = "MovingHorizontal";
             _orientation = new Vector2(1, 0);
             SetCurrentAnimationState(_currentAnimationState);
+            canAct = true;
             Show();
         }
-        private void UpdatePowerupTimers(GameTime gameTime)
+        private void UpdatePowerupTimer(GameTime gameTime)
         {
-            List<Powerup.PowerupType> powerupsToRemove = new List<Powerup.PowerupType>();
-            foreach (Powerup.PowerupType powerup in _activePowerups)
+            if (activePowerup != null)
             {
-                
-                if(_powerupTimers[powerup]<=0)
+                _timerText.CenterText(new Rectangle((int)activePowerup.position.X, (int)activePowerup.position.Y, 32, 32), true, true);
+                _powerupTimer -= gameTime.ElapsedGameTime.Milliseconds;
+                if (_powerupTimer <= 0)
                 {
-                    powerupsToRemove.Add(powerup);
-                    switch (powerup)
+                    switch (activePowerup.Type)
                     {
                         case Powerup.PowerupType.Speed: _movementSpeed = 3f; break;
-                        case Powerup.PowerupType.BigAmmo: 
-                            _hasBigAmmo = false; 
-                            if(_chargeLevel==1)
+                        case Powerup.PowerupType.BigAmmo:
+                            _hasBigAmmo = false;
+                            if (_chargeLevel == 1)
                             {
                                 _scale = 1f;
                                 cannon.SetScale(1f);
                             }
-                            
+
                             break;
                         case Powerup.PowerupType.AttackSpeed:
                             _hasFastAttack = false;
                             coolDownTime = 300;
                             break;
                     }
-                }
-                else
-                {
-                    _powerupTimers[powerup] -= gameTime.ElapsedGameTime.Milliseconds;
+                    activePowerup = null;
                 }
             }
-            powerupsToRemove.ForEach(p => _activePowerups.Remove(p));
+
         }
         public void ApplyForce(float magnitude, Vector2 direction)
         {
@@ -201,13 +211,17 @@ namespace MultiShooterGame.GameObjects
         public void Damage(Bullet bullet)
         {
             _health -= bullet.damage;
+            _healthBar.ChangePercentage(((float)_health / cStartHealth)*100);
             if (_health <= 0)
             {
+                _health = 0;
+                canAct = false;
                 //Play sound or something
                 if (IsXboxControllerScheme(_usedControlScheme) && _isVibrating)
                 {
                     GamePad.SetVibration(_gamePadIndex, 0, 0);
                 }
+                Hide();
             }
             else
             {
@@ -222,24 +236,38 @@ namespace MultiShooterGame.GameObjects
             }
 
         }
-        public void GetPowerup(Powerup.PowerupType powerup)
+
+        public void GetPowerup(Powerup powerup)
         {
-            _powerupTimers[powerup] = 6000;
-            _activePowerups.Add(powerup);
-            switch(powerup)
+            powerUpInSlot = powerup;
+            powerUpInSlot.position = powerupRectangle.position;
+            powerUpInSlot.position.X += 2;
+            powerUpInSlot.position.Y += 2;
+        }
+        public void ActivatePowerup()
+        {
+            switch (powerUpInSlot.Type)
             {
+                case Powerup.PowerupType.Speed:
+                    _movementSpeed = 5f;
+                    break;
                 case Powerup.PowerupType.AttackSpeed:
-                    _hasFastAttack=true;
+                    _hasFastAttack = true;
                     coolDownTime = 100f;
                     break;
-                case Powerup.PowerupType.BigAmmo: 
-                    _hasBigAmmo = true; 
+                case Powerup.PowerupType.BigAmmo:
+                    _hasBigAmmo = true;
                     _scale = 1.2f;
-                    cannon.SetScale(1.2f); 
+                    cannon.SetScale(1.2f);
                     break;
-                case Powerup.PowerupType.Mines: break;
-                case Powerup.PowerupType.Speed: _movementSpeed = 5f; break;
+                case Powerup.PowerupType.Mines:
+                    break;
             }
+            activePowerup = powerUpInSlot;
+            activePowerup.position = powerUpInSlot.position;
+            activePowerup.position.X+= 32 + 16;
+            powerUpInSlot = null;
+            _powerupTimer = 5000;
         }
         #endregion
 
@@ -258,9 +286,16 @@ namespace MultiShooterGame.GameObjects
                 if (_recievedForceTimer < _recievedForceTotalTime)
                 {
                     _recievedForceTimer += gameTime.ElapsedGameTime.Milliseconds;
-                    position += _receivedForceDirection * _recievedForceMagnitude;
-                    _recievedForceMagnitude /= 2;
-                    HandleBoundaryCheck();
+                    if (IsWithinBoundary(position + _receivedForceDirection * _recievedForceMagnitude))
+                    {
+                        position += _receivedForceDirection * _recievedForceMagnitude;
+                        _recievedForceMagnitude /= 2;
+                    }
+                    else
+                    {
+                        _recievedForceTimer = _recievedForceTotalTime;
+                        _recievedForceMagnitude = 0;
+                    }
                 }
                 if (_isVibrating)
                 {
@@ -274,14 +309,19 @@ namespace MultiShooterGame.GameObjects
                     }
                     else
                     {
+                        //AdjustPositionToBounds();
                         _vibrationTimer += gameTime.ElapsedGameTime.Milliseconds;
                     }
                 }
-                UpdatePowerupTimers(gameTime);
+                UpdatePowerupTimer(gameTime);
             }
         }
         public void HandleWallCollisions(Map currentMap)
         {
+            if(_health <0)
+            {
+                return;
+            }
             int tileX = (int)Math.Round((position.X - Origin.X) / Map.TileSize);
             int tileY = (int)Math.Round((position.Y - Origin.Y) / Map.TileSize);
 
@@ -297,7 +337,7 @@ namespace MultiShooterGame.GameObjects
                 diff = position.X - left.Center.X;
                 if (diff < 32)
                 {
-                    position.X = left.Center.X + 16 + Origin.X;
+                     position.X = left.Center.X + 16 + Origin.X;
                     collisionWasSeen = true;
                 }
             }
@@ -328,12 +368,32 @@ namespace MultiShooterGame.GameObjects
                     collisionWasSeen = true;
                 }
             }
-            if(collisionWasSeen)
+            if (collisionWasSeen)
             {
                 _recievedForceTimer = 0;
             }
         }
-        public void HandleBoundaryCheck()
+        public bool IsWithinBoundary(Vector2 position)
+        {
+            if (position.X < 48)
+            {
+                return false;
+            }
+            if (position.X > (PlayScreen.MapWidth * Map.TileSize) - 48)
+            {
+                return false;
+            }
+            if (position.Y < 48)
+            {
+                return false;
+            }
+            if (position.Y > (PlayScreen.MapHeight*Map.TileSize)-48)
+            {
+                return false;
+            }
+            return true;
+        }
+        public void AdjustPositionToBounds()
         {
             if (position.X < 48)
             {
@@ -365,7 +425,16 @@ namespace MultiShooterGame.GameObjects
                     HandleMovement(inputState, gameTime);
                     HandleOrientation(inputState);
                     HandleShooting(inputState, gameTime);
+
+                    //Powerup
+                    if (powerUpInSlot != null &&
+                        (inputState.IsButtonNewPressed(Buttons.Y) ||
+                        inputState.IsKeyNewPressed(Keys.LeftShift)))
+                    {
+                        ActivatePowerup();
+                    }
                 }
+
             }
         }
         private void HandleMovement(InputState inputState, GameTime gameTime)
@@ -446,7 +515,7 @@ namespace MultiShooterGame.GameObjects
                         _orientation.Normalize();
                         rotation = GeometricHelper.GetAngleFromVectorDirection(_orientation);
                     }
-                    
+
                     break;
             }
 
@@ -470,8 +539,6 @@ namespace MultiShooterGame.GameObjects
             {
                 ResumeAnimation();
             }
-
-
         }
         private void HandleShooting(InputState inputState, GameTime gameTime)
         {
@@ -491,7 +558,7 @@ namespace MultiShooterGame.GameObjects
                     isCharging = inputState.IsKeyPressed(Keys.Space);
                     break;
                 default://Xbox controller
-                    if(!_useRightStick)
+                    if (!_useRightStick)
                     {
                         isShooting = inputState.IsButtonNewReleased(Buttons.X);
                         isCharging = inputState.IsButtonPressed(Buttons.X);
@@ -501,10 +568,10 @@ namespace MultiShooterGame.GameObjects
                         isShooting = inputState.IsButtonNewReleased(Buttons.RightTrigger);
                         isCharging = inputState.IsButtonPressed(Buttons.RightTrigger);
                     }
-                    
+
                     break;
             }
-           
+
             if (isCharging && _timeCharged < cFullyChargeTime)
             {
                 _timeCharged = Math.Min(_timeCharged + gameTime.ElapsedGameTime.Milliseconds, cFullyChargeTime);
@@ -562,8 +629,28 @@ namespace MultiShooterGame.GameObjects
             {
                 cannon.rotation = rotation;
             }
-
             base.Draw(gameTime);
+        }
+        public void DrawStatsBar(GameTime gameTime)
+        {
+            if (showHealthStatus)
+            {
+                tankSprite.Draw(gameTime);
+
+                _healthBar.Draw(_spriteBatch, gameTime);
+               
+                powerupRectangle.Draw(gameTime);
+                if (powerUpInSlot != null)
+                {
+                    powerUpInSlot.Draw(gameTime);
+                }
+                if (activePowerup != null)
+                {
+                    activePowerup.Draw(gameTime);
+                    _timerText.text = (Math.Round(_powerupTimer / 1000,0)).ToString();
+                    _timerText.Draw(gameTime);
+                }
+            }
         }
 
     }

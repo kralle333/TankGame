@@ -25,17 +25,16 @@ namespace MultiShooterGame
         private int[] teamsSelected;
 
         private Map _currentMap;
-        private const int cMapWidth = 42;
-        private const int cMapHeight = 22;
+        public static int MapWidth = 42;
+        public static int MapHeight = 21;
         private const int cTileSize = 32;
 
-        private ShapeRenderer shapeRenderer;
         private Viewport[] usedViewPorts;
         public static bool usingSplitScreen = false;
         private Viewport guiViewPort;
-        private Dictionary<Tank, SpriteText> _healthText;
-        private SpriteText _wonText;
+        private Camera2D _guiCamera;
         private MenuFrame _guiFrame;
+        private SpriteText _wonText;
 
         private bool doingCountdown = true;
         private float countdownTimer = 3;
@@ -57,13 +56,33 @@ namespace MultiShooterGame
             GameRules.playerScores = new int[numberOfPlayers];
         }
 
-        private void ResetGame()
+        private void StartNextRound()
         {
             startingLocations.Clear();
-            _deadSoldiers.Clear();
             _playersRemaining.Clear();
-            SetStartingPositions(cMapWidth, cMapHeight);
-            _currentMap = MapGenerator.GenerateRoguelikeMap(cMapWidth, cMapHeight);
+            SetStartingPositions(MapWidth, MapHeight);
+
+            Tank winner = null;
+            for (int i = 0; i < numberOfPlayers; i++)
+            {
+                if(GameRules.playerScores[i] >= GameRules.numberToWin)
+                {
+                    winner = _players[i];
+                    break;
+                }
+            }
+            ShowWinner(winner);
+            return;
+
+            //Make more advanced here
+            switch (GameRules._mapSelectionSetting)
+            {
+                case GameRules.MapSelectionSetting.RandomGenerated:
+                    _currentMap = MapGenerator.GenerateRoguelikeMap(MapWidth, MapHeight);
+                    break;
+                case GameRules.MapSelectionSetting.Shuffle:
+                    break;
+            }
             _currentMap.LoadContent(_contentManager);
             for (int i = 0; i < numberOfPlayers; i++)
             {
@@ -75,27 +94,47 @@ namespace MultiShooterGame
                 _playersRemaining.Add(_players[i]);
             }
         }
+        public void ShowWinner(Tank winner)
+        {
+
+        }
         public override void LoadContent()
         {
             base.LoadContent();
             screenManager.Game.IsMouseVisible = false;
-            shapeRenderer = new ShapeRenderer("splitscreenborder");
-            shapeRenderer.LoadContent(_contentManager);
+            ShapeRenderer.graphicsDevice = screenManager.GraphicsDevice;
             screenManager.ClearColor = Color.Black;
             Tile.InitializeTilePreferences();
             usingSplitScreen = false;
 
-
             Map.TileSize = cTileSize;
             MapGenerator.Initialize();
-            _currentMap = MapGenerator.GenerateRoguelikeMap(cMapWidth, cMapHeight);
+            _currentMap = MapGenerator.GenerateRoguelikeMap(MapWidth, MapHeight);
             _currentMap.LoadContent(_contentManager);
 
-            SetStartingPositions(cMapWidth, cMapHeight);
+            SetStartingPositions(MapWidth, MapHeight);
             SetViewPorts(numberOfPlayers);
-            camera.Move(new Vector2(-12, -Map.TileSize * 2 + 16));
-            _guiFrame = new MenuFrame(new Rectangle((int)camera.Position.X + 3, (int)camera.Position.Y, (int)GameSettings.ScreenWidth - 6, (int)GameSettings.ScreenHeight), "Menu", new Rectangle(0, 0, 16, 16));
+            camera.Move(new Vector2(-12, -3 * Map.TileSize + 16));
+
+            _guiFrame = new MenuFrame(new Rectangle(0, 0, (int)GameSettings.ScreenWidth - 6, (int)GameSettings.ScreenHeight), "Menu", new Rectangle(0, 0, 16, 16));
+            _guiFrame.AddHorizontalLine(16, (int)GameSettings.ScreenWidth - 22, (int)(2 * 32));
+            _guiFrame.AddSplit(0, (int)(2 * 32), MenuFrame.SplitType.Right);
+            _guiFrame.AddSplit((int)GameSettings.ScreenWidth - 22, (int)(2 * 32), MenuFrame.SplitType.Left);
+            for (int i = 1; i <= 2; i++)
+            {
+                _guiFrame.AddSplit((i * 290), 0, MenuFrame.SplitType.Down);
+                _guiFrame.AddSplit((i * 290), (int)(2 * 32), MenuFrame.SplitType.Up);
+                _guiFrame.AddVerticalLine((i * 290), 16, 2 * 32);
+            }
+            for (int i = 3; i <= 4; i++)
+            {
+                _guiFrame.AddSplit((i * 290) - 90, 0, MenuFrame.SplitType.Down);
+                _guiFrame.AddSplit((i * 290) - 90, (int)(2 * 32), MenuFrame.SplitType.Up);
+                _guiFrame.AddVerticalLine((i * 290) - 90, 16, 2 * 32);
+            }
+
             _guiFrame.LoadContent(_contentManager);
+            _guiCamera = new Camera2D();
 
             _wonText = new SpriteText("BigFont", "Player won", new Vector2(300, 300));
             _wonText.Depth = 1f;
@@ -104,11 +143,10 @@ namespace MultiShooterGame
             _wonText.CenterText(new Rectangle((int)camera.Position.X, (int)camera.Position.Y, (int)GameSettings.ScreenWidth, (int)GameSettings.ScreenHeight), true, true);
             _wonText.Hide();
 
-            _timerFont = new SpriteText("HealthFont", "Time: ", new Vector2(0, -24));
-            Add(_timerFont);
-            _timerFont.CenterText(new Rectangle(0, 0, (int)GameSettings.ScreenWidth, 0), true, false);
+            _timerFont = new SpriteText("HealthFont", "Time: ", new Vector2(0, 0));
+            _timerFont.LoadContent(_contentManager, _spriteBatch);
+            _timerFont.CenterText(new Rectangle(0, 16, (int)GameSettings.ScreenWidth, 16 * 3), true, true);
 
-            _healthText = new Dictionary<Tank, SpriteText>();
             for (int i = 0; i < numberOfPlayers; i++)
             {
                 int randomPosition = random.Next(0, startingLocations.Count);
@@ -121,9 +159,6 @@ namespace MultiShooterGame
                 {
                     _players[i].camera = this.camera;
                 }
-                _healthText[_players[i]] = new SpriteText("HealthFont", "", new Vector2(20+(i * 300), -24));
-                _healthText[_players[i]].color = Tank.ConvertTeamToColor(teamsSelected[i]);
-                Add(_healthText[_players[i]]);
 
                 _playersRemaining.Add(_players[i]);
             }
@@ -171,7 +206,6 @@ namespace MultiShooterGame
             startingLocations.Add(new Tuple<Vector2, float>(new Vector2((mapWidth * Map.TileSize) - offsetX, (mapHeight * Map.TileSize) - offsetY), (float)Math.PI));
         }
 
-        private readonly List<Tank> _deadSoldiers = new List<Tank>();
         public override void Update(GameTime gameTime)
         {
             base.Update(gameTime);
@@ -184,22 +218,11 @@ namespace MultiShooterGame
         }
         private void UpdatePlayers(GameTime gameTime)
         {
-            _deadSoldiers.Clear();
+            _playersRemaining.RemoveAll(x => x.Health <= 0);
             for (int i = 0; i < _playersRemaining.Count; i++)
             {
                 _playersRemaining[i].Update(gameTime);
                 _playersRemaining[i].HandleWallCollisions(_currentMap);
-                if (_playersRemaining[i].Health <= 0)
-                {
-                    _healthText[_playersRemaining[i]].text = "Player " + (_playersRemaining[i].PlayerIndex + 1) + " is dead";
-                    _playersRemaining[i].Hide();
-                    _deadSoldiers.Add(_playersRemaining[i]);
-                    continue;
-                }
-                else
-                {
-                    _healthText[_playersRemaining[i]].text = "Player " + (_playersRemaining[i].PlayerIndex + 1) + ":";
-                }
                 foreach (Tank otherSoldier in _playersRemaining)
                 {
                     if (otherSoldier != _playersRemaining[i] &&
@@ -216,14 +239,10 @@ namespace MultiShooterGame
                     if (_playersRemaining[i].CheckRectangluarCollision(_powerups[j]))
                     {
                         powerupsToRemove.Add(_powerups[j]);
-                        _playersRemaining[i].GetPowerup(_powerups[j].Type);
+                        _playersRemaining[i].GetPowerup(_powerups[j]);
                     }
                 }
                 powerupsToRemove.ForEach(x => _powerups.Remove(x));
-            }
-            foreach (Tank soldier in _deadSoldiers)
-            {
-                _playersRemaining.Remove(soldier);
             }
 
             if (_playersRemaining.Count < 2 && _wonText.isVisible)
@@ -293,20 +312,13 @@ namespace MultiShooterGame
                         b.Hide();
                     }
                 }
-                for (int i = 0; i < _powerups.Count; i++)
-                {
-                    if (b.CheckCircularCollision(_powerups[i]))
-                    {
-                        _powerups[i].Open();
-                    }
-                }
             }
         }
         private void HandlePowerups(GameTime gameTime)
         {
             _countdownToPowerup -= gameTime.ElapsedGameTime.Milliseconds;
-            if ((gameTimer > 30000 && _minCountdownToPowerup == 10000) ||
-                (gameTimer > 60000 && _minCountdownToPowerup == 5000))
+            if ((gameTimer > 60000 && _minCountdownToPowerup == 10000) ||
+                (gameTimer > 120000 && _minCountdownToPowerup == 5000))
             {
                 _minCountdownToPowerup /= 2;
                 _maxCountdownToPowerup /= 2;
@@ -333,7 +345,7 @@ namespace MultiShooterGame
                         }
                     }
                 } while (!foundTile);
-                int startRange = GameRules.selectedGameType== GameRules.GameType.CollectToWin?0:1;
+                int startRange = GameRules.selectedGameType == GameRules.GameType.CollectToWin ? 0 : 1;
                 Powerup newPower = new Powerup((int)randTile.position.X, (int)randTile.position.Y, (Powerup.PowerupType)random.Next(startRange, 3));
                 newPower.LoadContent(_contentManager);
                 _powerups.Add(newPower);
@@ -359,7 +371,7 @@ namespace MultiShooterGame
                             reset = inputState.IsButtonNewPressed(Buttons.Start);
                             break;
                     }
-                    if (reset) ResetGame(); break;
+                    if (reset) StartNextRound(); break;
                 }
             }
         }
@@ -400,15 +412,6 @@ namespace MultiShooterGame
                 screenManager.GraphicsDevice.Viewport = guiViewPort;
                 _spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.NonPremultiplied, SamplerState.PointWrap, null, null, null, camera.GetTransformation(screenManager.GraphicsDevice));
 
-                for (int i = 0; i < numberOfPlayers; i++)
-                {
-                    for (int j = 0; j < _players[i].Health; j++)
-                    {
-                        _players[i].healthBar.position = _players[i].healthDrawPosition;
-                        _players[i].healthBar.position.X += j * _players[i].healthBar.Width;
-                        _players[i].healthBar.Draw(gameTime);
-                    }
-                }
 
                 if (_playersRemaining.Count <= 1)
                 {
@@ -420,25 +423,26 @@ namespace MultiShooterGame
             else
             {
                 _spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.NonPremultiplied, SamplerState.PointWrap, null, null, null, camera.GetTransformation(screenManager.GraphicsDevice));
-                if (_playersRemaining.Count <= 1)
-                {
-                    _wonText.Draw(_spriteBatch, gameTime);
-                }
                 PooledObjects.bullets.ForEach(b => b.Draw(_spriteBatch, gameTime));
                 PooledObjects.fragmentClusters.ForEach(fc => fc.Draw(_spriteBatch, gameTime));
                 _powerups.ForEach(x => x.Draw(_spriteBatch, gameTime));
-                _guiFrame.Draw(_spriteBatch, gameTime);
                 _currentMap.Draw(_spriteBatch, gameTime);
                 for (int i = 0; i < numberOfPlayers; i++)
                 {
                     _players[i].Draw(_spriteBatch, gameTime);
-                    for (int j = 0; j < _players[i].Health; j++)
-                    {
-                        _players[i].healthBar.position = _players[i].healthDrawPosition;
-                        _players[i].healthBar.position.X += j * _players[i].healthBar.Width;
-                        _players[i].healthBar.Draw(gameTime);
-                    }
                 }
+                _spriteBatch.End();
+                _spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.NonPremultiplied, SamplerState.PointWrap, null, null, null, _guiCamera.GetTransformation(screenManager.GraphicsDevice));
+                _guiFrame.Draw(_spriteBatch, gameTime);
+                for (int i = 0; i < numberOfPlayers; i++)
+                {
+                    _players[i].DrawStatsBar(gameTime);
+                }
+                if (_playersRemaining.Count <= 1)
+                {
+                    _wonText.Draw(_spriteBatch, gameTime);
+                }
+                _timerFont.Draw(gameTime);
                 _spriteBatch.End();
             }
         }

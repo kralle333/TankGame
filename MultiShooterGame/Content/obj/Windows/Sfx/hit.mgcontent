@@ -3,7 +3,7 @@
   <SourceFile>D:/Programming/C#/MultiShooterGame/MultiShooterGame/Content/Sfx/hit.wav</SourceFile>
   <SourceTime>2015-08-25T12:30:14.5803062+02:00</SourceTime>
   <DestFile>D:/Programming/C#/MultiShooterGame/MultiShooterGame/Content/bin/Windows/Sfx/hit.xnb</DestFile>
-  <DestTime>2015-08-25T23:22:40.9011363+02:00</DestTime>
+  <DestTime>2015-08-28T16:03:12.3080102+02:00</DestTime>
   <Importer>WavImporter</Importer>
   <ImporterTime>2015-03-16T04:01:46+01:00</ImporterTime>
   <Processor>SoundEffectProcessor</Processor>

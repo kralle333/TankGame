@@ -15,7 +15,6 @@ namespace MultiShooterGame.Screens
     class PlayerSelectScreen : GameScreen
     {
         private SpriteFont _font;
-        private List<Sprite> _guiParts = new List<Sprite>();
         private MenuFrame _menuFrame;
 
         private bool[] _gamePadSlotsUsed = new bool[4];
@@ -26,7 +25,8 @@ namespace MultiShooterGame.Screens
         private float _currentRotation = 0;
         private int _playersPlaying = 0;
 
-        private Tank[] _tankSprites = new Tank[10];
+        private Sprite[] _tankSprites = new Sprite[10];
+
         private int[] _selectedTeams = new int[4];
         private string _helpText = "Press (A)/Enter to add Player \nPress (B)/Q to remove Player \nPress (Start)/S to start game";
         
@@ -43,14 +43,21 @@ namespace MultiShooterGame.Screens
 
             for (int i = 0; i < 10; i++)
             {
-                _tankSprites[i] = new Tank(i,new Vector2(300 + (i * 300), 300), i, Tank.ControlScheme.Empty, new Rectangle(0, 0, (int)GameSettings.GetResolution().X, (int)GameSettings.GetResolution().Y));
-                _tankSprites[i].camera = this.camera;
+                _tankSprites[i] = new Sprite("Sprites", 0,0, new Rectangle(96 + (32 * i), 112, 32, 32), 1);
+                _tankSprites[i].Origin = new Vector2(16, 16);
                 _tankSprites[i].LoadContent(_contentManager, _spriteBatch);
                 _tankSprites[i].Hide();
                 _tankSprites[i].rotation = _currentRotation;
             }
             for (int i = 0; i < 4; i++) _selectedTeams[i] = -1;
             _menuFrame = new MenuFrame(new Rectangle(80, 180, 1200, 320), "Menu",new Rectangle(0,0,16,16));
+            for(int i = 1;i<4;i++)
+            {
+                _menuFrame.AddSplit((i * 300) + 80, 180,MenuFrame.SplitType.Down);
+                _menuFrame.AddSplit((i * 300) + 80, 500-16, MenuFrame.SplitType.Up);
+                _menuFrame.AddVerticalLine((i * 300) + 80, 196, 500-16);
+            }
+           
             _menuFrame.LoadContent(_contentManager);
         }
  

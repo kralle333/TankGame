@@ -3,7 +3,7 @@
   <SourceFile>D:/Programming/C#/MultiShooterGame/MultiShooterGame/Content/Sfx/tankExplosion.wav</SourceFile>
   <SourceTime>2015-08-25T12:31:48.2143871+02:00</SourceTime>
   <DestFile>D:/Programming/C#/MultiShooterGame/MultiShooterGame/Content/bin/Windows/Sfx/tankExplosion.xnb</DestFile>
-  <DestTime>2015-08-25T23:22:41.0154873+02:00</DestTime>
+  <DestTime>2015-08-28T16:03:12.4482962+02:00</DestTime>
   <Importer>WavImporter</Importer>
   <ImporterTime>2015-03-16T04:01:46+01:00</ImporterTime>
   <Processor>SoundEffectProcessor</Processor>

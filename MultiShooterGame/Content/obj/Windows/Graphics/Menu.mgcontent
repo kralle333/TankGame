@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PipelineBuildEvent xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <SourceFile>D:/Programming/C#/MultiShooterGame/MultiShooterGame/Content/Graphics/Menu.png</SourceFile>
-  <SourceTime>2015-08-27T13:34:39.6379661+02:00</SourceTime>
+  <SourceTime>2015-08-28T18:55:25.1190335+02:00</SourceTime>
   <DestFile>D:/Programming/C#/MultiShooterGame/MultiShooterGame/Content/bin/Windows/Graphics/Menu.xnb</DestFile>
-  <DestTime>2015-08-27T13:35:49.1959564+02:00</DestTime>
+  <DestTime>2015-08-28T18:55:30.6557703+02:00</DestTime>
   <Importer>TextureImporter</Importer>
   <ImporterTime>2015-03-16T04:01:46+01:00</ImporterTime>
   <Processor>TextureProcessor</Processor>
