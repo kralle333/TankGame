@@ -180,27 +180,31 @@ namespace MultiShooterGame.GameObjects
                 _powerupTimer -= gameTime.ElapsedGameTime.Milliseconds;
                 if (_powerupTimer <= 0)
                 {
-                    switch (activePowerup.Type)
-                    {
-                        case Powerup.PowerupType.Speed: _movementSpeed = 3f; break;
-                        case Powerup.PowerupType.BigAmmo:
-                            _hasBigAmmo = false;
-                            if (_chargeLevel == 1)
-                            {
-                                _scale = 1f;
-                                cannon.SetScale(1f);
-                            }
-
-                            break;
-                        case Powerup.PowerupType.AttackSpeed:
-                            _hasFastAttack = false;
-                            coolDownTime = 300;
-                            break;
-                    }
-                    activePowerup = null;
+                    RemovePowerup();
                 }
             }
 
+        }
+        private void RemovePowerup()
+        {
+            switch (activePowerup.Type)
+            {
+                case Powerup.PowerupType.Speed: _movementSpeed = 3f; break;
+                case Powerup.PowerupType.BigAmmo:
+                    _hasBigAmmo = false;
+                    if (_chargeLevel == 1)
+                    {
+                        _scale = 1f;
+                        cannon.SetScale(1f);
+                    }
+
+                    break;
+                case Powerup.PowerupType.AttackSpeed:
+                    _hasFastAttack = false;
+                    coolDownTime = 300;
+                    break;
+            }
+            activePowerup = null;
         }
         public void ApplyForce(float magnitude, Vector2 direction)
         {

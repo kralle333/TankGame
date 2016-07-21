@@ -114,7 +114,8 @@ namespace MultiShooterGame
 
             SetStartingPositions(MapWidth, MapHeight);
             SetViewPorts(numberOfPlayers);
-            camera.Move(new Vector2(-12, -3 * Map.TileSize + 16));
+            camera.Zoom = 0.99f;
+            camera.Move(new Vector2(-16, -80));
 
             _guiFrame = new MenuFrame(new Rectangle(0, 0, (int)GameSettings.ScreenWidth - 6, (int)GameSettings.ScreenHeight), "Menu", new Rectangle(0, 0, 16, 16));
             _guiFrame.AddHorizontalLine(16, (int)GameSettings.ScreenWidth - 22, (int)(2 * 32));
@@ -162,7 +163,6 @@ namespace MultiShooterGame
 
                 _playersRemaining.Add(_players[i]);
             }
-
 
             PooledObjects.Initialize();
             PooledObjects.bullets.ForEach(b => b.LoadContent(_contentManager));
@@ -236,7 +236,7 @@ namespace MultiShooterGame
                 List<Powerup> powerupsToRemove = new List<Powerup>();
                 for (int j = 0; j < _powerups.Count; j++)
                 {
-                    if (_playersRemaining[i].CheckRectangluarCollision(_powerups[j]))
+                    if (_playersRemaining[i].IsCollidingCircularlyWith(_powerups[j]))
                     {
                         powerupsToRemove.Add(_powerups[j]);
                         _playersRemaining[i].GetPowerup(_powerups[j]);
@@ -286,7 +286,7 @@ namespace MultiShooterGame
                 {
                     if (possibleColliders[i] == null) continue;
 
-                    if (possibleColliders[i].Type == Tile.BlockType.Solid && possibleColliders[i].CheckRectangluarCollision(b))
+                    if (possibleColliders[i].Type == Tile.BlockType.Solid && possibleColliders[i].IsCollidingCircularlyWith(b))
                     {
 
                         int remainderDamage = b.damage - possibleColliders[i].Health;
@@ -306,7 +306,7 @@ namespace MultiShooterGame
 
                 for (int i = 0; i < _playersRemaining.Count; i++)
                 {
-                    if (_playersRemaining[i].Health > 0 && _playersRemaining[i].CheckCircularCollision(b) && b.Team != _playersRemaining[i].Team)
+                    if (_playersRemaining[i].Health > 0 && _playersRemaining[i].IsCollidingCircularlyWith(b) && b.Team != _playersRemaining[i].Team)
                     {
                         _playersRemaining[i].Damage(b);
                         b.Hide();

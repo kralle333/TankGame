@@ -1,2 +1,6 @@
 MultiShooterGame/obj/
 MultiShooterGame/bin/
+MultiShooterGame/Content/obj/
+MultiShooterGame/Content/bin/
+.vs/MultiShooterGame/v14/.suo
+MultiShooterGame/app.config
