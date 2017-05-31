@@ -14,6 +14,8 @@
     <MonoGamePlatform>Windows</MonoGamePlatform>
     <MonoGameContentBuilderExe>
     </MonoGameContentBuilderExe>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <PlatformTarget>x86</PlatformTarget>
@@ -24,6 +26,7 @@
     <DefineConstants>DEBUG;TRACE;WINDOWS</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <PlatformTarget>x86</PlatformTarget>
@@ -33,13 +36,16 @@
     <DefineConstants>TRACE;WINDOWS</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationIcon>Icon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="AudioManager.cs" />
     <Compile Include="EntryPoint.cs" />
     <Compile Include="GameObjects\Bullet.cs" />
+    <Compile Include="GameObjects\Explosion.cs" />
     <Compile Include="GameObjects\FragmentCluster.cs" />
     <Compile Include="GameObjects\Map.cs" />
     <Compile Include="GameObjects\MapGenerator.cs" />
@@ -52,6 +58,8 @@
     <Compile Include="Screens\MenuScreen.cs" />
     <Compile Include="Screens\PlayerSelectScreen.cs" />
     <Compile Include="Screens\PlayScreen.cs" />
+    <Compile Include="Screens\ResultsScreen.cs" />
+    <Compile Include="Screens\WinScreen.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="MonoGame.Framework">
@@ -62,11 +70,24 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Content\Graphics\explosion1.png" />
     <Content Include="Content\Graphics\Menu.png" />
     <Content Include="Content\Graphics\Sprites.png" />
     <Content Include="Content\Graphics\Title.png" />
-    <Content Include="Content\Sfx\hit.wav" />
-    <Content Include="Content\Sfx\tankExplosion.wav" />
+    <Content Include="Content\Sfx\ActivatePowerup.wav" />
+    <Content Include="Content\Sfx\CriticalHit.wav" />
+    <Content Include="Content\Sfx\Engine.wav" />
+    <Content Include="Content\Sfx\Hit1.wav" />
+    <Content Include="Content\Sfx\Hit2.wav" />
+    <Content Include="Content\Sfx\Hit3.wav" />
+    <Content Include="Content\Sfx\PickUp.wav" />
+    <Content Include="Content\Sfx\TankExplosion1.wav" />
+    <Content Include="Content\Sfx\TankExplosion2.wav" />
+    <Content Include="Content\Sfx\TileCrumble.wav" />
+    <Content Include="Content\Sfx\TileHit1.wav" />
+    <Content Include="Content\Sfx\TileHit2.wav" />
+    <Content Include="Content\Sfx\TileHit3.wav" />
+    <Content Include="Content\Sfx\TileHit4.wav" />
     <Content Include="Icon.ico" />
   </ItemGroup>
   <ItemGroup>
@@ -105,11 +126,61 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Content\Explosion1.xnb">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Content\ActivatePowerup.xnb">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Content\CriticalHit.xnb">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Content\Engine.xnb">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <None Include="app.config" />
     <None Include="Content\Fonts\BigFont.spritefont" />
     <None Include="Content\Fonts\Font1.spritefont" />
     <None Include="Content\Fonts\HealthFont.spritefont" />
+    <None Include="Content\Fonts\NewSpriteFont.spritefont" />
     <None Include="Content\Graphics\Sprites.ase" />
     <Content Include="Content\Title.xnb">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Content\Hit1.xnb">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Content\Hit2.xnb">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Content\Hit3.xnb">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Content\PickUp.xnb">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Content\tankExplosion.xnb">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Content\TankExplosion1.xnb">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Content\TankExplosion2.xnb">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Content\TileCrumble.xnb">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Content\TileHit1.xnb">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Content\TileHit2.xnb">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Content\TileHit3.xnb">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Content\TileHit4.xnb">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

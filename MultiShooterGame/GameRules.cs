@@ -11,8 +11,10 @@ namespace MultiShooterGame
         public static MapSelectionSetting _mapSelectionSetting;
         public enum GameType {WinRoundsToWin,KillToWin, KillToWinActiveRespawn, CollectToWin}
         public static GameType selectedGameType = GameType.WinRoundsToWin;
-        public static int numberToWin = 15;
+        public static int numberToWin = 1;
         public static int[] playerScores;
 
+        //Stats
+        public static int totalTimeUsed = 0;
     }
 }

@@ -24,7 +24,7 @@ namespace MultiShooterGame
 				screenManager = new ScreenManager(this);
 				gameSettings = new GameSettings(graphics);
 				GameSettings.SetResolution(1366, 768, false);	
-				Components.Add(screenManager);		
+				Components.Add(screenManager);
 				screenManager.AddScreen(new MenuScreen());
 			}
 		}

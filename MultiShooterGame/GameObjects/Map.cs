@@ -19,6 +19,20 @@ namespace MultiShooterGame
         private bool _hasWalkableTile = true;
 		public static int TileSize;
 
+
+        public Map(int width, int height)
+        {
+            tiles = new Tile[width, width];
+            _width = width;
+            _height = height;
+            for (int x = 0; x < width; x++)
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    tiles[x, y] = new Tile(Tile.BlockName.Grass,x * Map.TileSize, y * Map.TileSize);
+                }
+            }
+        }
         public Map(Tile[,] tiles)
         {
             this.tiles = tiles;
@@ -28,6 +42,24 @@ namespace MultiShooterGame
             this.tiles[Width - 2, 1].SetType(Tile.BlockName.Grass);
             this.tiles[Width-2, Height-2].SetType(Tile.BlockName.Grass);
             this.tiles[1, Height-2].SetType(Tile.BlockName.Grass);
+        }
+
+        public Map(Map toCopy)
+        {
+            tiles = new Tile[toCopy.Width, toCopy.Height];
+            for (int x = 0;x<toCopy.Width;x++)
+            {
+                for (int y = 0; y < toCopy.Height; y++)
+                {
+                    tiles[x, y] = new Tile(toCopy.tiles[x, y]);
+                }
+            }
+            _width = tiles.GetLength(0);
+            _height = tiles.GetLength(1);
+            tiles[1, 1].SetType(Tile.BlockName.Grass);
+            tiles[Width - 2, 1].SetType(Tile.BlockName.Grass);
+            tiles[Width - 2, Height - 2].SetType(Tile.BlockName.Grass);
+            tiles[1, Height - 2].SetType(Tile.BlockName.Grass);
         }
         
 		public void Draw(SpriteBatch spriteBatch, GameTime gameTime)
@@ -83,5 +115,38 @@ namespace MultiShooterGame
 				}
 			}
 		}
-	}
+
+        public void CopyTileNames(Tile[,] tilesToCopy)
+        {
+            for (int x = 0; x <_width; x++)
+            {
+                for (int y = 0; y < _height; y++)
+                {
+                    tiles[x, y].SetType(tilesToCopy[x, y].Name);
+                }
+            }
+        }
+        public int NumberOfNeighbourTiles(int x, int y, int radius, Tile.BlockName tileName)
+        {
+            int numberOfNeighbours = 0;
+            for (int xx = -radius; xx <= radius; xx++)
+            {
+                for (int yy = -radius; yy <= radius; yy++)
+                {
+                    int dx = x + xx;
+                    int dy = y + yy;
+                    if (dx > 0 && dx < tiles.GetLength(0) - 1 &&
+                        dy > 0 && dy < tiles.GetLength(1) - 1 &&
+                        !(xx == 0 && yy == 0))
+                    {
+                        if (tiles[x, y].Name == tileName)
+                        {
+                            numberOfNeighbours++;
+                        }
+                    }
+                }
+            }
+            return numberOfNeighbours;
+        }
+    }
 }

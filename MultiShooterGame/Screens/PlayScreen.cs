@@ -10,6 +10,7 @@ using Microsoft.Xna.Framework.Input;
 using MultiShooterGame.GameObjects;
 using Microsoft.Xna.Framework.Content;
 using MonoGameLibrary.Menus;
+using MultiShooterGame.Screens;
 
 namespace MultiShooterGame
 {
@@ -34,7 +35,9 @@ namespace MultiShooterGame
         private Viewport guiViewPort;
         private Camera2D _guiCamera;
         private MenuFrame _guiFrame;
+        private ResultsScreen _resultsScreen;
         private SpriteText _wonText;
+        private bool _isRoundOver = false;
 
         private bool doingCountdown = true;
         private float countdownTimer = 3;
@@ -48,7 +51,7 @@ namespace MultiShooterGame
         private SpriteText _timerFont;
 
         public PlayScreen(int numberOfPlayers, Tank.ControlScheme[] controls, int[] selectedTeams)
-            : base(ScreenType.Standard)
+            : base(ScreenType.Standard,200,0)
         {
             usedControls = controls;
             teamsSelected = selectedTeams;
@@ -60,25 +63,29 @@ namespace MultiShooterGame
         {
             startingLocations.Clear();
             _playersRemaining.Clear();
-            SetStartingPositions(MapWidth, MapHeight);
+            GameRules.totalTimeUsed += gameTimer;
+            _powerups.Clear();
+            gameTimer = 0;
 
+            SetStartingPositions(MapWidth, MapHeight);
+            _isRoundOver = false;
             Tank winner = null;
             for (int i = 0; i < numberOfPlayers; i++)
             {
-                if(GameRules.playerScores[i] >= GameRules.numberToWin)
+                if (GameRules.playerScores[i] >= GameRules.numberToWin)
                 {
                     winner = _players[i];
-                    break;
+                    ShowWinner(winner);
+                    screenManager.AddScreen(new WinScreen(winner));
+                    //return;
                 }
             }
-            ShowWinner(winner);
-            return;
 
             //Make more advanced here
             switch (GameRules._mapSelectionSetting)
             {
                 case GameRules.MapSelectionSetting.RandomGenerated:
-                    _currentMap = MapGenerator.GenerateRoguelikeMap(MapWidth, MapHeight);
+                    _currentMap = MapGenerator.GenerateRandomCellularMap(MapWidth, MapHeight);
                     break;
                 case GameRules.MapSelectionSetting.Shuffle:
                     break;
@@ -109,44 +116,15 @@ namespace MultiShooterGame
 
             Map.TileSize = cTileSize;
             MapGenerator.Initialize();
-            _currentMap = MapGenerator.GenerateRoguelikeMap(MapWidth, MapHeight);
+            _currentMap = MapGenerator.GenerateRandomCellularMap(MapWidth, MapHeight);
             _currentMap.LoadContent(_contentManager);
 
             SetStartingPositions(MapWidth, MapHeight);
             SetViewPorts(numberOfPlayers);
             camera.Move(new Vector2(-12, -3 * Map.TileSize + 16));
+            LoadGui();
 
-            _guiFrame = new MenuFrame(new Rectangle(0, 0, (int)GameSettings.ScreenWidth - 6, (int)GameSettings.ScreenHeight), "Menu", new Rectangle(0, 0, 16, 16));
-            _guiFrame.AddHorizontalLine(16, (int)GameSettings.ScreenWidth - 22, (int)(2 * 32));
-            _guiFrame.AddSplit(0, (int)(2 * 32), MenuFrame.SplitType.Right);
-            _guiFrame.AddSplit((int)GameSettings.ScreenWidth - 22, (int)(2 * 32), MenuFrame.SplitType.Left);
-            for (int i = 1; i <= 2; i++)
-            {
-                _guiFrame.AddSplit((i * 290), 0, MenuFrame.SplitType.Down);
-                _guiFrame.AddSplit((i * 290), (int)(2 * 32), MenuFrame.SplitType.Up);
-                _guiFrame.AddVerticalLine((i * 290), 16, 2 * 32);
-            }
-            for (int i = 3; i <= 4; i++)
-            {
-                _guiFrame.AddSplit((i * 290) - 90, 0, MenuFrame.SplitType.Down);
-                _guiFrame.AddSplit((i * 290) - 90, (int)(2 * 32), MenuFrame.SplitType.Up);
-                _guiFrame.AddVerticalLine((i * 290) - 90, 16, 2 * 32);
-            }
-
-            _guiFrame.LoadContent(_contentManager);
-            _guiCamera = new Camera2D();
-
-            _wonText = new SpriteText("BigFont", "Player won", new Vector2(300, 300));
-            _wonText.Depth = 1f;
-            _wonText.color = Color.White;
-            _wonText.LoadContent(_contentManager);
-            _wonText.CenterText(new Rectangle((int)camera.Position.X, (int)camera.Position.Y, (int)GameSettings.ScreenWidth, (int)GameSettings.ScreenHeight), true, true);
-            _wonText.Hide();
-
-            _timerFont = new SpriteText("HealthFont", "Time: ", new Vector2(0, 0));
-            _timerFont.LoadContent(_contentManager, _spriteBatch);
-            _timerFont.CenterText(new Rectangle(0, 16, (int)GameSettings.ScreenWidth, 16 * 3), true, true);
-
+            //Load players
             for (int i = 0; i < numberOfPlayers; i++)
             {
                 int randomPosition = random.Next(0, startingLocations.Count);
@@ -166,9 +144,44 @@ namespace MultiShooterGame
 
             PooledObjects.Initialize();
             PooledObjects.bullets.ForEach(b => b.LoadContent(_contentManager));
-            PooledObjects.fragmentClusters.ForEach(fc => fc.LoadContent(_contentManager));
+            PooledObjects.tileFragmentClusters.ForEach(fc => fc.LoadContent(_contentManager));
+            PooledObjects.explosions.ForEach(e => e.LoadContent(_contentManager));
         }
+        private void LoadGui()
+        {
+            _guiCamera = new Camera2D();
+            _resultsScreen = new ResultsScreen(teamsSelected);
+            _guiFrame = new MenuFrame(new Rectangle(0, 0, (int)GameSettings.ScreenWidth - 6, (int)GameSettings.ScreenHeight), "Menu", new Rectangle(0, 0, 16, 16));
+            _guiFrame.AddHorizontalLine(16, (int)GameSettings.ScreenWidth - 22, (int)(2 * 32));
+            _guiFrame.AddSplit(0, (int)(2 * 32), MenuFrame.SplitType.Right);
+            _guiFrame.AddSplit((int)GameSettings.ScreenWidth - 22, (int)(2 * 32), MenuFrame.SplitType.Left);
+            for (int i = 1; i <= 2; i++)
+            {
+                _guiFrame.AddSplit((i * 290), 0, MenuFrame.SplitType.Down);
+                _guiFrame.AddSplit((i * 290), (int)(2 * 32), MenuFrame.SplitType.Up);
+                _guiFrame.AddVerticalLine((i * 290), 16, 2 * 32);
+            }
+            for (int i = 3; i <= 4; i++)
+            {
+                _guiFrame.AddSplit((i * 290) - 90, 0, MenuFrame.SplitType.Down);
+                _guiFrame.AddSplit((i * 290) - 90, (int)(2 * 32), MenuFrame.SplitType.Up);
+                _guiFrame.AddVerticalLine((i * 290) - 90, 16, 2 * 32);
+            }
 
+            _guiFrame.LoadContent(_contentManager);
+
+
+            _wonText = new SpriteText("BigFont", "Player won", new Vector2(300, 300));
+            _wonText.Depth = 1f;
+            _wonText.color = Color.White;
+            _wonText.LoadContent(_contentManager);
+            _wonText.CenterText(new Rectangle((int)camera.Position.X, (int)camera.Position.Y, (int)GameSettings.ScreenWidth, (int)GameSettings.ScreenHeight), true, true);
+            _wonText.Hide();
+
+            _timerFont = new SpriteText("HealthFont", "Time: ", new Vector2(0, 0));
+            _timerFont.LoadContent(_contentManager, _spriteBatch);
+            _timerFont.CenterText(new Rectangle(0, 16, (int)GameSettings.ScreenWidth, 16 * 3), true, true);
+        }
         private void SetViewPorts(int numberOfPlayers)
         {
             usedViewPorts = new Viewport[numberOfPlayers];
@@ -209,12 +222,31 @@ namespace MultiShooterGame
         public override void Update(GameTime gameTime)
         {
             base.Update(gameTime);
-            gameTimer += gameTime.ElapsedGameTime.Milliseconds;
-            _timerFont.text = "Time: " + gameTimer / 1000;
+            if (!_isRoundOver)
+            {
+                gameTimer += gameTime.ElapsedGameTime.Milliseconds;
+                _timerFont.text = "Time: " + gameTimer / 1000;
+            }
             UpdatePlayers(gameTime);
             HandleBulletCollision(gameTime);
             HandlePowerups(gameTime);
-            PooledObjects.fragmentClusters.ForEach(fc => fc.Update(gameTime));
+            PooledObjects.tileFragmentClusters.ForEach(fc => fc.Update(gameTime));
+            PooledObjects.explosions.ForEach(e => e.Update(gameTime));
+            if (_playersRemaining.Count <= 1 && !_isRoundOver)
+            {
+                _isRoundOver = true;
+                if (GameRules.selectedGameType == GameRules.GameType.WinRoundsToWin)
+                {
+                    GameRules.playerScores[_playersRemaining[0].PlayerIndex]++;
+                }
+                screenManager.AddScreen(_resultsScreen);
+                _resultsScreen.Show();
+            }
+
+            if (_isRoundOver && !_resultsScreen.isVisible)
+            {
+                StartNextRound();
+            }
         }
         private void UpdatePlayers(GameTime gameTime)
         {
@@ -230,31 +262,23 @@ namespace MultiShooterGame
                     {
                         Vector2 directionVector = otherSoldier.position - _playersRemaining[i].position;
                         directionVector.Normalize();
-                        _playersRemaining[i].ApplyForce(20f, -directionVector);
-                    }
-                }
-                List<Powerup> powerupsToRemove = new List<Powerup>();
-                for (int j = 0; j < _powerups.Count; j++)
-                {
-                    if (_playersRemaining[i].CheckRectangluarCollision(_powerups[j]))
-                    {
-                        powerupsToRemove.Add(_powerups[j]);
-                        _playersRemaining[i].GetPowerup(_powerups[j]);
-                    }
-                }
-                powerupsToRemove.ForEach(x => _powerups.Remove(x));
-            }
+                        Console.WriteLine(directionVector);
+                        _playersRemaining[i].ApplyForce(16f, -directionVector);
 
-            if (_playersRemaining.Count < 2 && _wonText.isVisible)
-            {
-                _wonText.Show();
-                if (_playersRemaining.Count == 0)
-                {
-                    _wonText.text = "Draw";
+                    }
                 }
-                else
+                if (_playersRemaining[i].HasRoomForPowerup)
                 {
-                    _wonText.text = "Player " + (_playersRemaining[0].PlayerIndex + 1) + " Won! Press (Start)/S to start new game";
+                    List<Powerup> powerupsToRemove = new List<Powerup>();
+                    for (int j = 0; j < _powerups.Count; j++)
+                    {
+                        if (_playersRemaining[i].IsCollidingWith(_powerups[j]))
+                        {
+                            powerupsToRemove.Add(_powerups[j]);
+                            _playersRemaining[i].GetPowerup(_powerups[j]);
+                        }
+                    }
+                    powerupsToRemove.ForEach(x => _powerups.Remove(x));
                 }
             }
         }
@@ -262,7 +286,7 @@ namespace MultiShooterGame
         {
             foreach (Bullet b in PooledObjects.bullets)
             {
-                if (!b.isVisible)
+                if (!b.IsVisible)
                 {
                     continue;
                 }
@@ -286,7 +310,7 @@ namespace MultiShooterGame
                 {
                     if (possibleColliders[i] == null) continue;
 
-                    if (possibleColliders[i].Type == Tile.BlockType.Solid && possibleColliders[i].CheckRectangluarCollision(b))
+                    if (possibleColliders[i].Type == Tile.BlockType.Solid && possibleColliders[i].IsCollidingWith(b))
                     {
 
                         int remainderDamage = b.damage - possibleColliders[i].Health;
@@ -298,7 +322,7 @@ namespace MultiShooterGame
                         else
                         {
                             b.damage = remainderDamage;
-                            b.SetScale(remainderDamage * 2);
+                            //b.SetScale(remainderDamage * 2);
                         }
                         break;
                     }
@@ -306,7 +330,7 @@ namespace MultiShooterGame
 
                 for (int i = 0; i < _playersRemaining.Count; i++)
                 {
-                    if (_playersRemaining[i].Health > 0 && _playersRemaining[i].CheckCircularCollision(b) && b.Team != _playersRemaining[i].Team)
+                    if (_playersRemaining[i].Health > 0 && _playersRemaining[i].IsCollidingCircularlyWith(b) && b.Team != _playersRemaining[i].Team)
                     {
                         _playersRemaining[i].Damage(b);
                         b.Hide();
@@ -346,7 +370,7 @@ namespace MultiShooterGame
                     }
                 } while (!foundTile);
                 int startRange = GameRules.selectedGameType == GameRules.GameType.CollectToWin ? 0 : 1;
-                Powerup newPower = new Powerup((int)randTile.position.X, (int)randTile.position.Y, (Powerup.PowerupType)random.Next(startRange, 3));
+                Powerup newPower = new Powerup((int)randTile.position.X, (int)randTile.position.Y, (Powerup.PowerupType)random.Next(startRange, 4));
                 newPower.LoadContent(_contentManager);
                 _powerups.Add(newPower);
             }
@@ -355,23 +379,27 @@ namespace MultiShooterGame
         {
             base.HandleInput(inputState);
 
-            bool reset = false;
             for (int i = 0; i < numberOfPlayers; i++)
             {
                 _players[i].HandleInput(inputState, screenManager.currentGameTime);
-                if (_playersRemaining.Count < 2)
+                if (_isRoundOver)
                 {
                     switch (usedControls[i])
                     {
                         case Tank.ControlScheme.Keyboard:
-                            reset = inputState.IsKeyNewPressed(Keys.S);
+                            if (inputState.IsKeyNewPressed(Keys.S))
+                            {
+                                StartNextRound();
+                            }
                             break;
                         default:
                             inputState.ActivePlayerIndex = _players[i].GamePadIndex;
-                            reset = inputState.IsButtonNewPressed(Buttons.Start);
+                            if (inputState.IsButtonNewPressed(Buttons.Start))
+                            {
+                                StartNextRound();
+                            }
                             break;
                     }
-                    if (reset) StartNextRound(); break;
                 }
             }
         }
@@ -399,7 +427,7 @@ namespace MultiShooterGame
 
                     _spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.NonPremultiplied, SamplerState.PointWrap, null, null, null, _players[i].camera.GetTransformation(screenManager.GraphicsDevice));
                     PooledObjects.bullets.ForEach(b => b.Draw(_spriteBatch, gameTime));
-                    PooledObjects.fragmentClusters.ForEach(fc => fc.Draw(_spriteBatch, gameTime));
+                    PooledObjects.tileFragmentClusters.ForEach(fc => fc.Draw(_spriteBatch, gameTime));
                     _currentMap.Draw(_spriteBatch, gameTime);
                     for (int j = 0; j < numberOfPlayers; j++)
                     {
@@ -413,7 +441,7 @@ namespace MultiShooterGame
                 _spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.NonPremultiplied, SamplerState.PointWrap, null, null, null, camera.GetTransformation(screenManager.GraphicsDevice));
 
 
-                if (_playersRemaining.Count <= 1)
+                if (_isRoundOver)
                 {
                     _wonText.Draw(_spriteBatch, gameTime);
                 }
@@ -424,7 +452,8 @@ namespace MultiShooterGame
             {
                 _spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.NonPremultiplied, SamplerState.PointWrap, null, null, null, camera.GetTransformation(screenManager.GraphicsDevice));
                 PooledObjects.bullets.ForEach(b => b.Draw(_spriteBatch, gameTime));
-                PooledObjects.fragmentClusters.ForEach(fc => fc.Draw(_spriteBatch, gameTime));
+                PooledObjects.tileFragmentClusters.ForEach(fc => fc.Draw(_spriteBatch, gameTime));
+                PooledObjects.explosions.ForEach(e => e.Draw(_spriteBatch, gameTime));
                 _powerups.ForEach(x => x.Draw(_spriteBatch, gameTime));
                 _currentMap.Draw(_spriteBatch, gameTime);
                 for (int i = 0; i < numberOfPlayers; i++)
@@ -438,7 +467,7 @@ namespace MultiShooterGame
                 {
                     _players[i].DrawStatsBar(gameTime);
                 }
-                if (_playersRemaining.Count <= 1)
+                if (_isRoundOver)
                 {
                     _wonText.Draw(_spriteBatch, gameTime);
                 }

@@ -16,7 +16,6 @@ namespace MultiShooterGame.GameObjects
         private const int timeToGetVisible = 2000;
         private int visibleTimer = 0;
 
-        private bool _isOpened = false;
         public Powerup(int x, int y, PowerupType powerupType)
             : base("Sprites", x, y, new Rectangle(96 + 32 * (int)powerupType, 144, 32, 32), 0.4f)
         {
@@ -31,7 +30,6 @@ namespace MultiShooterGame.GameObjects
             {
                 visibleTimer += gameTime.ElapsedGameTime.Milliseconds;
                 float alphaValue = (255f * ((float)visibleTimer / timeToGetVisible));
-                Console.WriteLine(alphaValue);
                 color.A = (Byte)alphaValue;
             }
             base.Draw(spriteBatch, gameTime);

@@ -14,13 +14,13 @@ namespace MultiShooterGame
 		private float _speed;
 		public int damage = 0;
 		private float _lifeTimer;
-		private const float cTimeToLive = 1000;
+		private const float cTimeToLive = 3000;
         private int _team = -1;
         public int Team { get { return _team; } }
 		public Bullet()
-			: base("Sprites", 0, 0, new Rectangle(64,64,8,6), 0.8f)
+			: base("Sprites", 0, 0, new Rectangle(64,64,12,10), 0.8f)
 		{
-            SetOrigin(4, 3f);
+            SetOrigin(6, 5);
 			Hide();
 		}
 
@@ -30,7 +30,7 @@ namespace MultiShooterGame
             _speed = 10;
             _team = team;
             position = fromPosition+(direction * 10);
-            SetTextureRectangle(new Rectangle(112+(32*team), 80, 8, 6));
+            SetTextureRectangle(new Rectangle(112+(32*team), 80, 10, 8));
             rotation = GeometricHelper.GetAngleFromVectorDirection(direction);
 			directionVector = direction;
 			SetScale(size*2);
@@ -41,7 +41,7 @@ namespace MultiShooterGame
 		public override void Update(GameTime gameTime)
 		{
 			base.Update(gameTime);
-			if (isVisible)
+			if (IsVisible)
 			{
 				position += directionVector * _speed;
 				_lifeTimer -= gameTime.ElapsedGameTime.Milliseconds;

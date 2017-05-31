@@ -40,7 +40,107 @@ namespace MultiShooterGame.GameObjects
 
             }
             tile.SetNeighbours(walkableNeighbours);
-        }       
+        }
+
+        #region Cellular Map
+
+        public static Map GenerateRandomCellularMap(int width, int height)
+        {
+            int iterations = 10;
+
+            Map map = new Map(width, height);
+            Map previousMap = new Map(width, height);
+
+            //Initialize with random tiles
+            for (int x = 0; x < width; x++)
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    map.tiles[x, y].SetType(random.Next(0, 100) < 60 ? Tile.BlockName.Grass : Tile.BlockName.SolidWall);
+                }
+            }
+            
+            for (int i = 0; i < iterations; i++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    for (int y = 0; y < height; y++)
+                    {
+                        //Check directions for ground tiles
+                        int numberOfGroundtiles = previousMap.NumberOfNeighbourTiles(x, y, 1, Tile.BlockName.Grass);
+
+                        //Check if we should set the tile to ground
+                        if (numberOfGroundtiles >= 5 || (numberOfGroundtiles == 4 && previousMap.tiles[x,y].Name == Tile.BlockName.Grass))
+                        {
+                            map.tiles[x, y].SetType(Tile.BlockName.Grass);
+                        }
+                        else
+                        {
+                            map.tiles[x, y].SetType(Tile.BlockName.SolidWall);
+                        }
+
+                    }
+                }
+                previousMap.CopyTileNames(map.tiles);
+            }
+
+            return map;
+        }
+
+        /*
+        void RandomizeBushesOnGround()
+        {
+
+            for (int x = 0; x < Width; x++)
+            {
+                for (int y = 0; y < Height; y++)
+                {
+                    if (tiles[x,y] == TileTypes::Ground)
+                    {
+                        tiles[x,y] = tileRandomizer(_random) < 70 ? TileTypes::Ground : TileTypes::Bush;
+                    }
+
+                }
+            }
+        }
+        
+        void CreateRandomBushes(int iterations)
+        {
+            GameMap previousMap = *this;
+
+            std::uniform_int_distribution<std::mt19937::result_type> tileRandomizer(1, 100);
+            for (int i = 0; i < iterations; i++)
+            {
+                for (int x = 0; x < Width; x++)
+                {
+                    for (int y = 0; y < Height; y++)
+                    {
+                        if (tiles[x,y] == TileTypes::Wall)
+                        {
+                            continue;
+                        }
+
+                        //Check directions for ground tiles
+                        int numberOfGroundtiles = previousMap.NumberOfNeighbourTiles(x, y, 2, TileTypes::Bush);
+
+                        //Check if we should set the tile to ground
+                        if (numberOfGroundtiles >= 10 || (numberOfGroundtiles == 9 && previousMap.GetTile(x, y) == TileTypes::Bush))
+                        {
+                            tiles[x,y] = TileTypes::Bush;
+                        }
+                        else
+                        {
+                            tiles[x,y] = TileTypes::Ground;
+                        }
+
+                    }
+                }
+                previousMap = *this;
+            }
+        }
+        */
+       
+        #endregion
 
         #region RoguelikeMap
         public static Map GenerateRoguelikeMap(int width, int height)

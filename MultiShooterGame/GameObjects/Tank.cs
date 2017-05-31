@@ -9,6 +9,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Content;
 using MultiShooterGame.GameObjects;
 using MonoGameLibrary.Drawing;
+using Microsoft.Xna.Framework.Audio;
 
 namespace MultiShooterGame.GameObjects
 {
@@ -49,6 +50,11 @@ namespace MultiShooterGame.GameObjects
         private int _team;
         public int Team { get { return _team; } }
         public Camera2D camera = new Camera2D();
+        public void ChangeScale(float newScale)
+        {
+            cannon.SetScale(newScale);
+            SetScale(newScale);
+        }
 
         private Vector2 _cannonOrientation = new Vector2();
         private bool _isCannonLocked = true;
@@ -67,8 +73,8 @@ namespace MultiShooterGame.GameObjects
 
         //Movement
         private float _movementSpeed = 3f;
-        private float velocity;
-        private float oldVelocity;
+        private float _velocity;
+        private float _oldVelocity;
         private const float acceleration = 0.08f;
         public float Rotation
         {
@@ -82,7 +88,7 @@ namespace MultiShooterGame.GameObjects
 
         //Weapon fields
         private float _timeCharged = 0;
-        private const float cFullyChargeTime = 1500;
+        private const float cFullyChargeTime = 1200;
         private float _coolDownTimer = 0;
         private float coolDownTime = 300;
         private int _chargeLevel = 1;
@@ -95,7 +101,7 @@ namespace MultiShooterGame.GameObjects
         private string _currentAnimationState = "";
         private Vector2 _orientation;
         private Rectangle _screenBounds;
-        private Vector2 _addedMovement;
+        private Vector2 _movementVector;
         public bool canAct = true;
         private Sprite cannon;
 
@@ -108,11 +114,12 @@ namespace MultiShooterGame.GameObjects
         private float _vibrationTotalTime = 200;
         private bool _isVibrating = false;
 
+        private SoundEffectInstance engineSound;
+
         //Powerups
         private float _powerupTimer;
         private Powerup powerUpInSlot;
         public bool HasRoomForPowerup { get { return powerUpInSlot == null; } }
-        private Powerup activePowerup;
         private SpriteText _timerText;
 
         public Tank(int playerIndex, Vector2 position, int team, ControlScheme controlScheme, Rectangle screenBounds)
@@ -146,11 +153,11 @@ namespace MultiShooterGame.GameObjects
             statsBarPosition = new Vector2(20 + (playerIndex * 290), 24);
             if (playerIndex > 1)
             {
-                statsBarPosition.X -= 90;
+                statsBarPosition.X += 200;
             }
             tankSprite = new Sprite("Sprites", (int)statsBarPosition.X, (int)statsBarPosition.Y, new Rectangle(96 + (32 * team), 112, 32, 32), 1);
             _healthBar = new HealthBar((int)statsBarPosition.X + 42, (int)statsBarPosition.Y, 116, 30, Color.Green, Color.Red, Color.Black);
-            powerupRectangle = new Sprite("Sprites", _healthBar.x+100+32,21, 1);
+            powerupRectangle = new Sprite("Sprites", _healthBar.x + 100 + 32, 21, 1);
             powerupRectangle.SetTextureRectangle(new Rectangle(0, 176, 36, 36));
         }
         public override void LoadContent(ContentManager contentManager, SpriteBatch spriteBatch)
@@ -158,29 +165,44 @@ namespace MultiShooterGame.GameObjects
             base.LoadContent(contentManager, spriteBatch);
             tankSprite.LoadContent(contentManager, spriteBatch);
             powerupRectangle.LoadContent(contentManager, spriteBatch);
-            _timerText = new SpriteText("HealthFont", "4",statsBarPosition);
+            _timerText = new SpriteText("HealthFont", "4", statsBarPosition);
             _timerText.LoadContent(contentManager, spriteBatch);
+            engineSound = AudioManager.GetSFXInstance("Engine");
+            engineSound.Volume = 0.3f;
+            engineSound.IsLooped = true;
+            engineSound.Play();
         }
 
         #region Change State
         public void Reset()
         {
             _health = cStartHealth;
+            _healthBar.Percent = 100;
+            _chargeLevel = 1;
+            _timeCharged = 0;
+            _powerupTimer = 0;
+            _hasFastAttack = false;
+            _hasBigAmmo = false;
+            _movementSpeed = 3f;
+            coolDownTime = 300;
+            powerUpInSlot = null;
             _currentAnimationState = "MovingHorizontal";
             _orientation = new Vector2(1, 0);
             SetCurrentAnimationState(_currentAnimationState);
             canAct = true;
             Show();
+            engineSound.Play();
+            engineSound.IsLooped = true;
         }
         private void UpdatePowerupTimer(GameTime gameTime)
         {
-            if (activePowerup != null)
+            if (powerUpInSlot != null && _powerupTimer > 0)
             {
-                _timerText.CenterText(new Rectangle((int)activePowerup.position.X, (int)activePowerup.position.Y, 32, 32), true, true);
+                _timerText.CenterText(new Rectangle((int)powerUpInSlot.position.X, (int)powerUpInSlot.position.Y, 32, 32), true, true);
                 _powerupTimer -= gameTime.ElapsedGameTime.Milliseconds;
                 if (_powerupTimer <= 0)
                 {
-                    switch (activePowerup.Type)
+                    switch (powerUpInSlot.Type)
                     {
                         case Powerup.PowerupType.Speed: _movementSpeed = 3f; break;
                         case Powerup.PowerupType.BigAmmo:
@@ -197,7 +219,7 @@ namespace MultiShooterGame.GameObjects
                             coolDownTime = 300;
                             break;
                     }
-                    activePowerup = null;
+                    powerUpInSlot = null;
                 }
             }
 
@@ -211,11 +233,12 @@ namespace MultiShooterGame.GameObjects
         public void Damage(Bullet bullet)
         {
             _health -= bullet.damage;
-            _healthBar.ChangePercentage(((float)_health / cStartHealth)*100);
+            _healthBar.ChangePercentage(((float)_health / cStartHealth) * 100);
             if (_health <= 0)
             {
                 _health = 0;
                 canAct = false;
+                PooledObjects.explosions.Find(x => !x.IsVisible).Explode(this);
                 //Play sound or something
                 if (IsXboxControllerScheme(_usedControlScheme) && _isVibrating)
                 {
@@ -225,6 +248,15 @@ namespace MultiShooterGame.GameObjects
             }
             else
             {
+                if(bullet.damage==3)
+                {
+                    AudioManager.PlaySFX("CriticalHit", 1);
+                }
+                else
+                {
+                    AudioManager.PlaySFX("Hit" + PlayScreen.random.Next(1, 4), 0.5f);
+                }
+
                 _receivedForceDirection = bullet.directionVector;
                 _recievedForceTimer = 0;
                 _recievedForceMagnitude = bullet.damage * 3f;
@@ -239,6 +271,7 @@ namespace MultiShooterGame.GameObjects
 
         public void GetPowerup(Powerup powerup)
         {
+            AudioManager.PlaySFX("PickUp", 1);
             powerUpInSlot = powerup;
             powerUpInSlot.position = powerupRectangle.position;
             powerUpInSlot.position.X += 2;
@@ -246,6 +279,7 @@ namespace MultiShooterGame.GameObjects
         }
         public void ActivatePowerup()
         {
+            AudioManager.PlaySFX("ActivatePowerup", 1);
             switch (powerUpInSlot.Type)
             {
                 case Powerup.PowerupType.Speed:
@@ -253,7 +287,7 @@ namespace MultiShooterGame.GameObjects
                     break;
                 case Powerup.PowerupType.AttackSpeed:
                     _hasFastAttack = true;
-                    coolDownTime = 100f;
+                    coolDownTime = 200f;
                     break;
                 case Powerup.PowerupType.BigAmmo:
                     _hasBigAmmo = true;
@@ -263,10 +297,10 @@ namespace MultiShooterGame.GameObjects
                 case Powerup.PowerupType.Mines:
                     break;
             }
-            activePowerup = powerUpInSlot;
-            activePowerup.position = powerUpInSlot.position;
-            activePowerup.position.X+= 32 + 16;
-            powerUpInSlot = null;
+            //activePowerup = powerUpInSlot;
+            //activePowerup.position = powerUpInSlot.position;
+            //activePowerup.position.X+= 32 + 16;
+            //powerUpInSlot = null;
             _powerupTimer = 5000;
         }
         #endregion
@@ -286,16 +320,9 @@ namespace MultiShooterGame.GameObjects
                 if (_recievedForceTimer < _recievedForceTotalTime)
                 {
                     _recievedForceTimer += gameTime.ElapsedGameTime.Milliseconds;
-                    if (IsWithinBoundary(position + _receivedForceDirection * _recievedForceMagnitude))
-                    {
-                        position += _receivedForceDirection * _recievedForceMagnitude;
-                        _recievedForceMagnitude /= 2;
-                    }
-                    else
-                    {
-                        _recievedForceTimer = _recievedForceTotalTime;
-                        _recievedForceMagnitude = 0;
-                    }
+                    position += _receivedForceDirection * _recievedForceMagnitude;
+                    _recievedForceMagnitude /= 2;
+                    AdjustPositionToBounds();
                 }
                 if (_isVibrating)
                 {
@@ -309,7 +336,6 @@ namespace MultiShooterGame.GameObjects
                     }
                     else
                     {
-                        //AdjustPositionToBounds();
                         _vibrationTimer += gameTime.ElapsedGameTime.Milliseconds;
                     }
                 }
@@ -318,7 +344,7 @@ namespace MultiShooterGame.GameObjects
         }
         public void HandleWallCollisions(Map currentMap)
         {
-            if(_health <0)
+            if (_health < 0)
             {
                 return;
             }
@@ -337,7 +363,7 @@ namespace MultiShooterGame.GameObjects
                 diff = position.X - left.Center.X;
                 if (diff < 32)
                 {
-                     position.X = left.Center.X + 16 + Origin.X;
+                    position.X = left.Center.X + 16 + Origin.X;
                     collisionWasSeen = true;
                 }
             }
@@ -373,43 +399,24 @@ namespace MultiShooterGame.GameObjects
                 _recievedForceTimer = 0;
             }
         }
-        public bool IsWithinBoundary(Vector2 position)
-        {
-            if (position.X < 48)
-            {
-                return false;
-            }
-            if (position.X > (PlayScreen.MapWidth * Map.TileSize) - 48)
-            {
-                return false;
-            }
-            if (position.Y < 48)
-            {
-                return false;
-            }
-            if (position.Y > (PlayScreen.MapHeight*Map.TileSize)-48)
-            {
-                return false;
-            }
-            return true;
-        }
+
         public void AdjustPositionToBounds()
         {
             if (position.X < 48)
             {
                 position.X = 48;
             }
-            if (position.X > GameSettings.ScreenWidth - 48)
+            if (position.X > (PlayScreen.MapWidth * Map.TileSize) - 48)
             {
-                position.X = GameSettings.ScreenWidth - 48;
+                position.X = (PlayScreen.MapWidth * Map.TileSize) - 48;
             }
             if (position.Y < 48)
             {
                 position.Y = 48;
             }
-            if (position.Y > GameSettings.ScreenHeight - 48)
+            if (position.Y > (PlayScreen.MapHeight * Map.TileSize) - 48)
             {
-                position.Y = GameSettings.ScreenHeight - 48;
+                position.Y = (PlayScreen.MapHeight * Map.TileSize) - 48;
             }
         }
         public void HandleInput(InputState inputState, GameTime gameTime)
@@ -427,7 +434,7 @@ namespace MultiShooterGame.GameObjects
                     HandleShooting(inputState, gameTime);
 
                     //Powerup
-                    if (powerUpInSlot != null &&
+                    if (powerUpInSlot != null && _powerupTimer <= 0 &&
                         (inputState.IsButtonNewPressed(Buttons.Y) ||
                         inputState.IsKeyNewPressed(Keys.LeftShift)))
                     {
@@ -439,86 +446,59 @@ namespace MultiShooterGame.GameObjects
         }
         private void HandleMovement(InputState inputState, GameTime gameTime)
         {
-            _addedMovement = new Vector2(0, 0);
+            Vector2 previousMovementVector = _movementVector;
+            _movementVector = Vector2.Zero;
             if (IsXboxControllerScheme(_usedControlScheme))
             {
-                _addedMovement = inputState.GetLeftStickPosition();
-                //Dualstick
-                _addedMovement.Y *= -1;
+                _movementVector = inputState.GetLeftStickPosition();
+                if (_movementVector != Vector2.Zero)
+                {
+                    //Dualstick
+                    _movementVector.Y *= -1;
+                }
+                else
+                {
+                    if (inputState.IsButtonPressed(Buttons.DPadLeft)) { _movementVector.X = -1.0f; }
+                    else if (inputState.IsButtonPressed(Buttons.DPadRight)) { _movementVector.X = 1.0f; }
+                    if (inputState.IsButtonPressed(Buttons.DPadUp)) { _movementVector.Y = -1.0f; }
+                    else if (inputState.IsButtonPressed(Buttons.DPadDown)) { _movementVector.Y = 1.0f; }
+                }
             }
             else if (_usedControlScheme == ControlScheme.Keyboard)
             {
-                if (inputState.IsKeyPressed(Keys.Left)) { _addedMovement.X = -1.0f; }
-                else if (inputState.IsKeyPressed(Keys.Right)) { _addedMovement.X = 1.0f; }
-                if (inputState.IsKeyPressed(Keys.Up)) { _addedMovement.Y = -1.0f; }
-                else if (inputState.IsKeyPressed(Keys.Down)) { _addedMovement.Y = 1.0f; }
-
-                if (_addedMovement.X != 0 || _addedMovement.Y != 0)
-                {
-                    rotation = GeometricHelper.GetAngleFromVectorDirection(_addedMovement);
-                }
+                if (inputState.IsKeyPressed(Keys.Left)) { _movementVector.X = -1.0f; }
+                else if (inputState.IsKeyPressed(Keys.Right)) { _movementVector.X = 1.0f; }
+                if (inputState.IsKeyPressed(Keys.Up)) { _movementVector.Y = -1.0f; }
+                else if (inputState.IsKeyPressed(Keys.Down)) { _movementVector.Y = 1.0f; }
             }
-            oldVelocity = velocity;
-            if (_addedMovement != Vector2.Zero)
+            if (_movementVector != Vector2.Zero)
             {
-                velocity = Math.Min(oldVelocity + (acceleration), _movementSpeed / _chargeLevel);
+                _orientation = _movementVector;
+            }
+            _oldVelocity = _velocity;
+            if (_movementVector != Vector2.Zero)
+            {
+                _velocity = Math.Min(_oldVelocity + (acceleration), _movementSpeed / _chargeLevel);
             }
             else
             {
-                velocity = Math.Max(oldVelocity - acceleration, 0);
+                _velocity = Math.Max(_oldVelocity - acceleration, 0);
             }
-            position += _addedMovement * ((oldVelocity + velocity) / 2);
+            position += _movementVector * ((_oldVelocity + _velocity) / 2);
+            float newPitch =  (_velocity / _movementSpeed);
+            if(newPitch>=0 && newPitch<=1)
+            {
+                engineSound.Pitch =newPitch;
+            }
         }
         private void HandleOrientation(InputState inputState)
         {
-            switch (_usedControlScheme)
+
+            if (_orientation.X != 0 || _orientation.Y != 0)
             {
-                case ControlScheme.Empty: break;
-                case ControlScheme.Keyboard:
-                    if (_addedMovement.X != 0 || _addedMovement.Y != 0)
-                    {
-                        _orientation = _addedMovement;
-                        _orientation.Normalize();
-                    }
-                    break;
-                default://Xbox controller
-                    if (_useRightStick)
-                    {
-
-                        if (!inputState.IsButtonNewPressed(Buttons.RightStick))
-                        {
-                            _isCannonLocked = true;
-                        }
-                        Vector2 cannonOrientation = inputState.GetRightStickPosition();
-                        if (cannonOrientation.X != 0 || cannonOrientation.Y != 0)
-                        {
-                            if (_isCannonLocked)
-                            {
-                                _isCannonLocked = false;
-                            }
-                            _cannonOrientation = cannonOrientation;
-                            _cannonOrientation.Y *= -1;
-                            _cannonOrientation.Normalize();
-                            cannon.rotation = GeometricHelper.GetAngleFromVectorDirection(_cannonOrientation);
-                        }
-                        if (_isCannonLocked)
-                        {
-                            _cannonOrientation = _orientation;
-                            cannon.rotation = rotation;
-                        }
-                    }
-
-                    if (_addedMovement.X != 0 || _addedMovement.Y != 0)
-                    {
-                        _orientation = inputState.GetLeftStickPosition();
-                        _orientation.Y *= -1;
-                        _orientation.Normalize();
-                        rotation = GeometricHelper.GetAngleFromVectorDirection(_orientation);
-                    }
-
-                    break;
+                _orientation.Normalize();
+                rotation = GeometricHelper.GetAngleFromVectorDirection(_orientation);
             }
-
             InputState.StickPosition currentPosition = InputState.ConvertVectorDirectionToStickPosition(_orientation);
             string newAnimation = "";
             if (animationMap.ContainsKey(currentPosition))
@@ -531,7 +511,7 @@ namespace MultiShooterGame.GameObjects
                 _currentAnimationState = newAnimation;
                 SetCurrentAnimationState(_currentAnimationState);
             }
-            if (_addedMovement.X == 0 && _addedMovement.Y == 0)
+            if (_movementVector.X == 0 && _movementVector.Y == 0)
             {
                 PauseAnimation();
             }
@@ -602,7 +582,7 @@ namespace MultiShooterGame.GameObjects
         {
             Vector2 bulletPosition = position + Origin;//Add some offset here
             Vector2 direction = _useRightStick ? _cannonOrientation : _orientation;
-            PooledObjects.bullets.Find(b => !b.isVisible).Activate(position, direction, 10, _hasBigAmmo ? 2 : _chargeLevel, _team);
+            PooledObjects.bullets.Find(b => !b.IsVisible).Activate(position, direction, 10, _hasBigAmmo ? 2 : _chargeLevel, _team);
             _timeCharged = 0;
             _coolDownTimer = coolDownTime;
 
@@ -638,18 +618,18 @@ namespace MultiShooterGame.GameObjects
                 tankSprite.Draw(gameTime);
 
                 _healthBar.Draw(_spriteBatch, gameTime);
-               
+
                 powerupRectangle.Draw(gameTime);
                 if (powerUpInSlot != null)
                 {
                     powerUpInSlot.Draw(gameTime);
+                    if (_powerupTimer > 0)
+                    {
+                        _timerText.text = (Math.Round(_powerupTimer / 1000, 0)).ToString();
+                        _timerText.Draw(gameTime);
+                    }
                 }
-                if (activePowerup != null)
-                {
-                    activePowerup.Draw(gameTime);
-                    _timerText.text = (Math.Round(_powerupTimer / 1000,0)).ToString();
-                    _timerText.Draw(gameTime);
-                }
+
             }
         }
 

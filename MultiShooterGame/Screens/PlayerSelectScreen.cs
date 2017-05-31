@@ -29,9 +29,9 @@ namespace MultiShooterGame.Screens
 
         private int[] _selectedTeams = new int[4];
         private string _helpText = "Press (A)/Enter to add Player \nPress (B)/Q to remove Player \nPress (Start)/S to start game";
-        
+
         public PlayerSelectScreen()
-            : base(ScreenType.Standard)
+            : base(ScreenType.Standard, 200, 200)
         {
 
         }
@@ -43,24 +43,24 @@ namespace MultiShooterGame.Screens
 
             for (int i = 0; i < 10; i++)
             {
-                _tankSprites[i] = new Sprite("Sprites", 0,0, new Rectangle(96 + (32 * i), 112, 32, 32), 1);
+                _tankSprites[i] = new Sprite("Sprites", 0, 0, new Rectangle(96 + (32 * i), 112, 32, 32), 1);
                 _tankSprites[i].Origin = new Vector2(16, 16);
                 _tankSprites[i].LoadContent(_contentManager, _spriteBatch);
                 _tankSprites[i].Hide();
                 _tankSprites[i].rotation = _currentRotation;
             }
             for (int i = 0; i < 4; i++) _selectedTeams[i] = -1;
-            _menuFrame = new MenuFrame(new Rectangle(80, 180, 1200, 320), "Menu",new Rectangle(0,0,16,16));
-            for(int i = 1;i<4;i++)
+            _menuFrame = new MenuFrame(new Rectangle(80, 180, 1200, 320), "Menu", new Rectangle(0, 0, 16, 16));
+            for (int i = 1; i < 4; i++)
             {
-                _menuFrame.AddSplit((i * 300) + 80, 180,MenuFrame.SplitType.Down);
-                _menuFrame.AddSplit((i * 300) + 80, 500-16, MenuFrame.SplitType.Up);
-                _menuFrame.AddVerticalLine((i * 300) + 80, 196, 500-16);
+                _menuFrame.AddSplit((i * 300) + 80, 180, MenuFrame.SplitType.Down);
+                _menuFrame.AddSplit((i * 300) + 80, 500 - 16, MenuFrame.SplitType.Up);
+                _menuFrame.AddVerticalLine((i * 300) + 80, 196, 500 - 16);
             }
-           
+
             _menuFrame.LoadContent(_contentManager);
         }
- 
+
         public override void HandleInput(InputState inputState)
         {
             base.HandleInput(inputState);
@@ -84,6 +84,7 @@ namespace MultiShooterGame.Screens
                             _selectedControls[i] = Tank.ControlScheme.Keyboard;
                             ChangeTeam(1, i);
                             _tankSprites[_selectedTeams[i]].Show();
+                            _tankSprites[_selectedTeams[i]].rotation = _currentRotation;
                             _playersPlaying++;
                             break;
                         }
@@ -103,6 +104,7 @@ namespace MultiShooterGame.Screens
                                 _selectedControls[j] = (Tank.ControlScheme)(i + 3);
                                 ChangeTeam(1, j);
                                 _tankSprites[_selectedTeams[j]].Show();
+                                _tankSprites[_selectedTeams[j]].rotation = _currentRotation;
                                 _playersPlaying++;
                                 break;
                             }
@@ -146,7 +148,7 @@ namespace MultiShooterGame.Screens
         }
         private void HandleGameStarting(InputState inputState)
         {
-            if (_playersPlaying > 1)
+            if (_playersPlaying >= 1)
             {
                 bool gamepadPressedStart = false;
                 for (int i = 0; i < 4; i++)
@@ -177,19 +179,17 @@ namespace MultiShooterGame.Screens
                             if (inputState.IsKeyNewPressed(Keys.Left))
                             {
                                 _tankSprites[_selectedTeams[i]].Hide();
-                                float rotation = _tankSprites[_selectedTeams[i]].rotation;
                                 ChangeTeam(-1, i);
                                 _tankSprites[_selectedTeams[i]].Show();
-                                _tankSprites[_selectedTeams[i]].rotation = rotation;
+                                _tankSprites[_selectedTeams[i]].rotation = _currentRotation;
 
                             }
                             else if (inputState.IsKeyNewPressed(Keys.Right))
                             {
                                 _tankSprites[_selectedTeams[i]].Hide();
-                                float rotation = _tankSprites[_selectedTeams[i]].rotation;
                                 ChangeTeam(1, i);
                                 _tankSprites[_selectedTeams[i]].Show();
-                                _tankSprites[_selectedTeams[i]].rotation = rotation;
+                                _tankSprites[_selectedTeams[i]].rotation = _currentRotation;
                             }
                             break;
                         default:
@@ -219,8 +219,8 @@ namespace MultiShooterGame.Screens
             for (int i = 0; i < _tankSprites.Length; i++)
             {
                 newTeam += spaces;
-                if (newTeam < 0) { newTeam = _tankSprites.Length-1; }
-                else if (newTeam > _tankSprites.Length-1) { newTeam = 0; }
+                if (newTeam < 0) { newTeam = _tankSprites.Length - 1; }
+                else if (newTeam > _tankSprites.Length - 1) { newTeam = 0; }
                 foundNewTeam = true;
                 for (int j = 0; j < _selectedTeams.Length; j++)
                 {
@@ -247,15 +247,19 @@ namespace MultiShooterGame.Screens
             _currentRotation += 0.03f;
             _spriteBatch.Begin();
             _spriteBatch.DrawString(_font, _helpText, new Vector2(GameSettings.ScreenWidth / 2 - _font.MeasureString(_helpText).X / 2, GameSettings.ScreenHeight * 0.1f), Color.White);
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < 10; i++)
             {
                 _tankSprites[i].rotation = _currentRotation;
+            }
+            for (int i = 0; i < 4; i++)
+            {
+
                 _spriteBatch.DrawString(_font, "Player " + (i + 1), new Vector2(80 + 150 - (_font.MeasureString("Player " + (i + 1)).X / 2) + (i * 300), 200), Color.White);
                 if (_selectedControls[i] != Tank.ControlScheme.Empty)
                 {
                     _spriteBatch.DrawString(_font, _selectedControls[i].ToString(), new Vector2(80 + 150 - (_font.MeasureString(_selectedControls[i].ToString()).X / 2) + (i * 300), 250), Color.White);
                     _spriteBatch.DrawString(_font, "Change color:Left/Right", new Vector2(110 + (i * 300), 450), Color.White);
-                    _tankSprites[_selectedTeams[i]].position = new Vector2(80 + (i * 300)+140, 350);
+                    _tankSprites[_selectedTeams[i]].position = new Vector2(80 + (i * 300) + 140, 350);
                     _tankSprites[_selectedTeams[i]].Draw(gameTime);
                 }
             }

@@ -15,8 +15,7 @@ namespace MultiShooterGame
     {
         private MenuSystem _mainMenu;
         private Sprite _title;
-        public MenuScreen()
-            : base(ScreenType.Standard)
+        public MenuScreen():base(ScreenType.Standard,200,200)
         {
 
         }
@@ -24,6 +23,7 @@ namespace MultiShooterGame
         public override void LoadContent()
         {
             base.LoadContent();
+            AudioManager.Initialize(_contentManager);
             screenManager.ClearColor = Color.Black;
             _title = new Sprite("Title", (int)GameSettings.ScreenWidth / 2 - 512, 64 + 32, new Rectangle(0, 0, 1024, 128), 1);
             Add(_title);

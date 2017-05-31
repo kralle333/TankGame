@@ -51,7 +51,15 @@ namespace MultiShooterGame
 		{
 			SetType(type);
 		}
-
+        public Tile(Tile toCopy):base("sprites",0,0,32,32,true,0)
+        {
+            position = toCopy.position;
+            SetType(toCopy.Name);
+            foreach(Tile neigbour in toCopy.neighbours)
+            {
+                neighbours.Add(new Tile(neigbour));
+            }
+        }
 
 		public void SetType(BlockName type)
 		{
@@ -92,11 +100,13 @@ namespace MultiShooterGame
 				if (_health <= 0)
 				{
 					SetType(BlockName.Gravel);
-                    FragmentCluster fc = PooledObjects.fragmentClusters.Find(x => x.IsUsable);
-                    fc.Explode(this, b.directionVector);
+                    FragmentCluster fc = PooledObjects.tileFragmentClusters.Find(x => x.IsUsable);
+                    fc.Explode(this.Center, b.directionVector,(float)(Math.PI/2),1000);
+                    AudioManager.PlaySFX("TileCrumble", 0.2f);
 				}
 				else
 				{
+                    AudioManager.PlaySFX("TileHit" + PlayScreen.random.Next(1,5), 0.2f);
 					NextFrame();
 				}
                 if(b.damage>1)
