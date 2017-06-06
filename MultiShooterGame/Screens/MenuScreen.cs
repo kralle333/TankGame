@@ -53,6 +53,10 @@ namespace MultiShooterGame
             {
                 _mainMenu.PressItem();
             }
+            else if(inputState.IsKeyNewPressed(Keys.T))
+            {
+                screenManager.AddScreen(new MapGeneratorTestScreen());
+            }
 
             for (int i = 0; i < 4; i++)
             {

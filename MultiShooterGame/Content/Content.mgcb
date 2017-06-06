@@ -163,9 +163,3 @@
 /processorParam:Quality=Best
 /build:Sfx/Engine.wav
 
-#begin Fonts/NewSpriteFont.spritefont
-/importer:FontDescriptionImporter
-/processor:FontDescriptionProcessor
-/processorParam:TextureFormat=Compressed
-/build:Fonts/NewSpriteFont.spritefont
-

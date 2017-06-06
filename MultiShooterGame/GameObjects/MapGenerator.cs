@@ -46,7 +46,7 @@ namespace MultiShooterGame.GameObjects
 
         public static Map GenerateRandomCellularMap(int width, int height)
         {
-            int iterations = 10;
+            int iterations = 7;
 
             Map map = new Map(width, height);
             Map previousMap = new Map(width, height);
@@ -56,21 +56,24 @@ namespace MultiShooterGame.GameObjects
             {
                 for (int y = 0; y < height; y++)
                 {
-                    map.tiles[x, y].SetType(random.Next(0, 100) < 60 ? Tile.BlockName.Grass : Tile.BlockName.SolidWall);
+                    map.tiles[x, y].SetType(random.Next(0, 100) < 55 ? Tile.BlockName.Grass : Tile.BlockName.SolidWall);
                 }
             }
-            
+
+            previousMap.CopyTileNames(map.tiles);
             for (int i = 0; i < iterations; i++)
             {
                 for (int x = 0; x < width; x++)
                 {
                     for (int y = 0; y < height; y++)
                     {
-                        //Check directions for ground tiles
-                        int numberOfGroundtiles = previousMap.NumberOfNeighbourTiles(x, y, 1, Tile.BlockName.Grass);
 
                         //Check if we should set the tile to ground
-                        if (numberOfGroundtiles >= 5 || (numberOfGroundtiles == 4 && previousMap.tiles[x,y].Name == Tile.BlockName.Grass))
+                        if (previousMap.NumberOfNeighbourTiles(x, y, 1, Tile.BlockName.SolidWall) >= 5)
+                        {
+                            map.tiles[x, y].SetType(Tile.BlockName.SolidWall);                        
+                        }
+                        else if(iterations<4 && previousMap.NumberOfNeighbourTiles(x, y, 2, Tile.BlockName.SolidWall) <= 2)
                         {
                             map.tiles[x, y].SetType(Tile.BlockName.Grass);
                         }

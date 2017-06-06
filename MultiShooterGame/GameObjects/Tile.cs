@@ -11,7 +11,7 @@ namespace MultiShooterGame
 	class Tile : Sprite
 	{
 		public enum BlockType { Solid, Walkable, WalkableCovering }
-		public enum BlockName { BreakableWall,SolidWall, Grass, TallGrass,Gravel }
+		public enum BlockName { BreakableWall,SolidWall='#', Grass=' ', TallGrass,Gravel }
 		private BlockType _type;
 		public BlockType Type { get { return _type; } }
 		private BlockName _name;

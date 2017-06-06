@@ -18,7 +18,7 @@ namespace MultiShooterGame
         {
             if(!hasBeenInitialized)
             {
-                string[] sfxFiles = Directory.GetFiles("Content/SFX/");
+                string[] sfxFiles = Directory.GetFiles("Content\\Sfx");
                 foreach (string file in sfxFiles)
                 {
                     string name = Path.GetFileNameWithoutExtension(file);
